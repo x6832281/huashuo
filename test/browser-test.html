@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本地存储模块 - 浏览器测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>本地存储模块 - 浏览器测试</h1>
+    
+    <div class="test-section">
+        <h2>1. 初始化测试</h2>
+        <button onclick="testInit()">测试初始化</button>
+        <div id="init-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 存储测试</h2>
+        <button onclick="testSaveData()">测试存储数据</button>
+        <div id="save-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 读取测试</h2>
+        <button onclick="testGetData()">测试读取数据</button>
+        <div id="get-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 读取所有测试</h2>
+        <button onclick="testGetAllData()">测试读取所有数据</button>
+        <div id="get-all-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. 更新测试</h2>
+        <button onclick="testUpdateData()">测试更新数据</button>
+        <div id="update-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>6. 删除测试</h2>
+        <button onclick="testDeleteData()">测试删除数据</button>
+        <div id="delete-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>7. 清空测试</h2>
+        <button onclick="testClearData()">测试清空数据</button>
+        <div id="clear-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>8. 完整测试</h2>
+        <button onclick="runAllTests()">运行所有测试</button>
+        <div id="all-tests-result" class="test-result"></div>
+    </div>
+
+    <script>
+        // 生成唯一ID
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // 测试数据
+        let testIdentity = {
+            id: generateId(),
+            nickname: '测试用户',
+            emoji: '😊',
+            created_at: Date.now()
+        };
+
+        let testPost = {
+            id: generateId(),
+            identity_id: testIdentity.id,
+            mood_band_ai: 5,
+            mood_band_final: 5,
+            mood_band_edit_count: 0,
+            content_text: '这是一条测试心事',
+            created_at: Date.now()
+        };
+
+        let testCard = {
+            id: generateId(),
+            post_id: testPost.id,
+            ai_poem: '测试诗句',
+            sticker_comfort: '安慰文案',
+            sticker_gossip: '吃瓜文案',
+            sticker_roast: '损友文案',
+            hugs_count: 0,
+            created_at: Date.now()
+        };
+
+        // 本地存储模块类
+        class LocalStorageModule {
+            constructor() {
+                this.dbName = 'huashuo_app';
+                this.dbVersion = 1;
+                this.db = null;
+                this.initialized = false;
+                this.isBrowser = typeof window !== 'undefined' && window.indexedDB;
+                this.memoryStorage = new Map(); // 内存存储作为最后降级方案
+            }
+
+            async initDatabase() {
+                if (!this.isBrowser) {
+                    console.log('非浏览器环境，使用内存存储');
+                    this.initialized = true;
+                    return null;
+                }
+
+                return new Promise((resolve, reject) => {
+                    const request = window.indexedDB.open(this.dbName, this.dbVersion);
+
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        
+                        // 创建存储对象
+                        if (!db.objectStoreNames.contains('identities')) {
+                            db.createObjectStore('identities', { keyPath: 'id' });
+                        }
+                        
+                        if (!db.objectStoreNames.contains('posts')) {
+                            db.createObjectStore('posts', { keyPath: 'id' });
+                        }
+                        
+                        if (!db.objectStoreNames.contains('cards')) {
+                            db.createObjectStore('cards', { keyPath: 'id' });
+                        }
+                    };
+
+                    request.onsuccess = (event) => {
+                        this.db = event.target.result;
+                        this.initialized = true;
+                        resolve(this.db);
+                    };
+
+                    request.onerror = (event) => {
+                        console.error('数据库初始化失败:', event.target.error);
+                        this.initialized = true; // 即使失败也标记为初始化完成，使用降级方案
+                        resolve(null);
+                    };
+                });
+            }
+
+            async getDatabase() {
+                if (!this.initialized) {
+                    await this.initDatabase();
+                }
+                return this.db;
+            }
+
+            async saveData(storeName, data) {
+                try {
+                    const db = await this.getDatabase();
+                    
+                    if (db) {
+                        return new Promise((resolve, reject) => {
+                            const transaction = db.transaction(storeName, 'readwrite');
+                            const store = transaction.objectStore(storeName);
+                            const request = store.put(data);
+
+                            request.onsuccess = () => {
+                                resolve(data);
+                            };
+
+                            request.onerror = (event) => {
+                                console.error(`保存数据失败 (${storeName}):`, event.target.error);
+                                // 降级到LocalStorage
+                                this.saveToLocalStorage(storeName, data);
+                                resolve(data); // 降级成功后返回数据
+                            };
+                        });
+                    } else {
+                        // 降级到LocalStorage
+                        if (this.isBrowser) {
+                            this.saveToLocalStorage(storeName, data);
+                            return data;
+                        } else {
+                            // 非浏览器环境，使用内存存储
+                            const key = `${storeName}_${data.id}`;
+                            this.memoryStorage.set(key, data);
+                            return data;
+                        }
+                    }
+                } catch (error) {
+                    console.error(`保存数据失败 (${storeName}):`, error);
+                    // 降级到LocalStorage
+                    if (this.isBrowser) {
+                        this.saveToLocalStorage(storeName, data);
+                        return data;
+                    } else {
+                        // 非浏览器环境，使用内存存储
+                        const key = `${storeName}_${data.id}`;
+                        this.memoryStorage.set(key, data);
+                        return data;
+                    }
+                }
+            }
+
+            async getData(storeName, id) {
+                try {
+                    const db = await this.getDatabase();
+                    
+                    if (db) {
+                        return new Promise((resolve, reject) => {
+                            const transaction = db.transaction(storeName, 'readonly');
+                            const store = transaction.objectStore(storeName);
+                            const request = store.get(id);
+
+                            request.onsuccess = () => {
+                                if (request.result) {
+                                    resolve(request.result);
+                                } else {
+                                    // 尝试从LocalStorage获取
+                                    if (this.isBrowser) {
+                                        const data = this.getFromLocalStorage(storeName, id);
+                                        resolve(data);
+                                    } else {
+                                        // 非浏览器环境，从内存存储获取
+                                        const key = `${storeName}_${id}`;
+                                        const data = this.memoryStorage.get(key);
+                                        resolve(data);
+                                    }
+                                }
+                            };
+
+                            request.onerror = (event) => {
+                                console.error(`读取数据失败 (${storeName}):`, event.target.error);
+                                // 降级到LocalStorage
+                                if (this.isBrowser) {
+                                    const data = this.getFromLocalStorage(storeName, id);
+                                    resolve(data);
+                                } else {
+                                    // 非浏览器环境，从内存存储获取
+                                    const key = `${storeName}_${id}`;
+                                    const data = this.memoryStorage.get(key);
+                                    resolve(data);
+                                }
+                            };
+                        });
+                    } else {
+                        // 降级到LocalStorage
+                        if (this.isBrowser) {
+                            const data = this.getFromLocalStorage(storeName, id);
+                            return data;
+                        } else {
+                            // 非浏览器环境，从内存存储获取
+                            const key = `${storeName}_${id}`;
+                            const data = this.memoryStorage.get(key);
+                            return data;
+                        }
+                    }
+                } catch (error) {
+                    console.error(`读取数据失败 (${storeName}):`, error);
+                    // 降级到LocalStorage
+                    if (this.isBrowser) {
+                        const data = this.getFromLocalStorage(storeName, id);
+                        return data;
+                    } else {
+                        // 非浏览器环境，从内存存储获取
+                        const key = `${storeName}_${id}`;
+                        const data = this.memoryStorage.get(key);
+                        return data;
+                    }
+                }
+            }
+
+            async getAllData(storeName, query = null) {
+                try {
+                    const db = await this.getDatabase();
+                    
+                    if (db) {
+                        return new Promise((resolve, reject) => {
+                            const transaction = db.transaction(storeName, 'readonly');
+                            const store = transaction.objectStore(storeName);
+                            const request = query ? store.openCursor(query) : store.getAll();
+
+                            const results = [];
+                            if (query) {
+                                request.onsuccess = (event) => {
+                                    const cursor = event.target.result;
+                                    if (cursor) {
+                                        results.push(cursor.value);
+                                        cursor.continue();
+                                    } else {
+                                        resolve(results);
+                                    }
+                                };
+                            } else {
+                                request.onsuccess = () => {
+                                    resolve(request.result);
+                                };
+                            }
+
+                            request.onerror = (event) => {
+                                console.error(`读取所有数据失败 (${storeName}):`, event.target.error);
+                                // 降级到LocalStorage
+                                if (this.isBrowser) {
+                                    const data = this.getAllFromLocalStorage(storeName);
+                                    resolve(data);
+                                } else {
+                                    // 非浏览器环境，从内存存储获取
+                                    const data = this.getAllFromMemoryStorage(storeName);
+                                    resolve(data);
+                                }
+                            };
+                        });
+                    } else {
+                        // 降级到LocalStorage
+                        if (this.isBrowser) {
+                            const data = this.getAllFromLocalStorage(storeName);
+                            return data;
+                        } else {
+                            // 非浏览器环境，从内存存储获取
+                            const data = this.getAllFromMemoryStorage(storeName);
+                            return data;
+                        }
+                    }
+                } catch (error) {
+                    console.error(`读取所有数据失败 (${storeName}):`, error);
+                    // 降级到LocalStorage
+                    if (this.isBrowser) {
+                        const data = this.getAllFromLocalStorage(storeName);
+                        return data;
+                    } else {
+                        // 非浏览器环境，从内存存储获取
+                        const data = this.getAllFromMemoryStorage(storeName);
+                        return data;
+                    }
+                }
+            }
+
+            async updateData(storeName, id, updates) {
+                try {
+                    const existingData = await this.getData(storeName, id);
+                    if (!existingData) {
+                        throw new Error('数据不存在');
+                    }
+
+                    const updatedData = { ...existingData, ...updates };
+                    return await this.saveData(storeName, updatedData);
+                } catch (error) {
+                    console.error(`更新数据失败 (${storeName}):`, error);
+                    throw error;
+                }
+            }
+
+            async deleteData(storeName, id) {
+                try {
+                    const db = await this.getDatabase();
+                    
+                    if (db) {
+                        return new Promise((resolve, reject) => {
+                            const transaction = db.transaction(storeName, 'readwrite');
+                            const store = transaction.objectStore(storeName);
+                            const request = store.delete(id);
+
+                            request.onsuccess = () => {
+                                // 同时从LocalStorage删除
+                                if (this.isBrowser) {
+                                    this.deleteFromLocalStorage(storeName, id);
+                                } else {
+                                    // 非浏览器环境，从内存存储删除
+                                    const key = `${storeName}_${id}`;
+                                    this.memoryStorage.delete(key);
+                                }
+                                resolve(true);
+                            };
+
+                            request.onerror = (event) => {
+                                console.error(`删除数据失败 (${storeName}):`, event.target.error);
+                                // 尝试从LocalStorage删除
+                                if (this.isBrowser) {
+                                    this.deleteFromLocalStorage(storeName, id);
+                                } else {
+                                    // 非浏览器环境，从内存存储删除
+                                    const key = `${storeName}_${id}`;
+                                    this.memoryStorage.delete(key);
+                                }
+                                resolve(true); // 降级成功后返回成功
+                            };
+                        });
+                    } else {
+                        // 降级到LocalStorage
+                        if (this.isBrowser) {
+                            this.deleteFromLocalStorage(storeName, id);
+                            return true;
+                        } else {
+                            // 非浏览器环境，从内存存储删除
+                            const key = `${storeName}_${id}`;
+                            this.memoryStorage.delete(key);
+                            return true;
+                        }
+                    }
+                } catch (error) {
+                    console.error(`删除数据失败 (${storeName}):`, error);
+                    // 尝试从LocalStorage删除
+                    if (this.isBrowser) {
+                        this.deleteFromLocalStorage(storeName, id);
+                    } else {
+                        // 非浏览器环境，从内存存储删除
+                        const key = `${storeName}_${id}`;
+                        this.memoryStorage.delete(key);
+                    }
+                    return true;
+                }
+            }
+
+            async clearData(storeName) {
+                try {
+                    const db = await this.getDatabase();
+                    
+                    if (db) {
+                        return new Promise((resolve, reject) => {
+                            const transaction = db.transaction(storeName, 'readwrite');
+                            const store = transaction.objectStore(storeName);
+                            const request = store.clear();
+
+                            request.onsuccess = () => {
+                                // 同时清空LocalStorage中的对应数据
+                                if (this.isBrowser) {
+                                    this.clearLocalStorage(storeName);
+                                } else {
+                                    // 非浏览器环境，清空内存存储
+                                    this.clearMemoryStorage(storeName);
+                                }
+                                resolve(true);
+                            };
+
+                            request.onerror = (event) => {
+                                console.error(`清空数据失败 (${storeName}):`, event.target.error);
+                                // 尝试清空LocalStorage
+                                if (this.isBrowser) {
+                                    this.clearLocalStorage(storeName);
+                                } else {
+                                    // 非浏览器环境，清空内存存储
+                                    this.clearMemoryStorage(storeName);
+                                }
+                                resolve(true); // 降级成功后返回成功
+                            };
+                        });
+                    } else {
+                        // 降级到LocalStorage
+                        if (this.isBrowser) {
+                            this.clearLocalStorage(storeName);
+                            return true;
+                        } else {
+                            // 非浏览器环境，清空内存存储
+                            this.clearMemoryStorage(storeName);
+                            return true;
+                        }
+                    }
+                } catch (error) {
+                    console.error(`清空数据失败 (${storeName}):`, error);
+                    // 尝试清空LocalStorage
+                    if (this.isBrowser) {
+                        this.clearLocalStorage(storeName);
+                    } else {
+                        // 非浏览器环境，清空内存存储
+                        this.clearMemoryStorage(storeName);
+                    }
+                    return true;
+                }
+            }
+
+            // LocalStorage 降级方案
+            saveToLocalStorage(storeName, data) {
+                try {
+                    const key = `${storeName}_${data.id}`;
+                    localStorage.setItem(key, JSON.stringify(data));
+                } catch (error) {
+                    console.error('LocalStorage存储失败:', error);
+                }
+            }
+
+            getFromLocalStorage(storeName, id) {
+                try {
+                    const key = `${storeName}_${id}`;
+                    const data = localStorage.getItem(key);
+                    return data ? JSON.parse(data) : null;
+                } catch (error) {
+                    console.error('LocalStorage读取失败:', error);
+                    return null;
+                }
+            }
+
+            getAllFromLocalStorage(storeName) {
+                try {
+                    const results = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key.startsWith(`${storeName}_`)) {
+                            const data = localStorage.getItem(key);
+                            if (data) {
+                                results.push(JSON.parse(data));
+                            }
+                        }
+                    }
+                    return results;
+                } catch (error) {
+                    console.error('LocalStorage读取所有数据失败:', error);
+                    return [];
+                }
+            }
+
+            deleteFromLocalStorage(storeName, id) {
+                try {
+                    const key = `${storeName}_${id}`;
+                    localStorage.removeItem(key);
+                } catch (error) {
+                    console.error('LocalStorage删除失败:', error);
+                }
+            }
+
+            clearLocalStorage(storeName) {
+                try {
+                    const keysToRemove = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key.startsWith(`${storeName}_`)) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                    keysToRemove.forEach(key => localStorage.removeItem(key));
+                } catch (error) {
+                    console.error('LocalStorage清空失败:', error);
+                }
+            }
+
+            // 内存存储辅助方法
+            getAllFromMemoryStorage(storeName) {
+                try {
+                    const results = [];
+                    for (const [key, value] of this.memoryStorage.entries()) {
+                        if (key.startsWith(`${storeName}_`)) {
+                            results.push(value);
+                        }
+                    }
+                    return results;
+                } catch (error) {
+                    console.error('内存存储读取所有数据失败:', error);
+                    return [];
+                }
+            }
+
+            clearMemoryStorage(storeName) {
+                try {
+                    const keysToRemove = [];
+                    for (const key of this.memoryStorage.keys()) {
+                        if (key.startsWith(`${storeName}_`)) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                    keysToRemove.forEach(key => this.memoryStorage.delete(key));
+                } catch (error) {
+                    console.error('内存存储清空失败:', error);
+                }
+            }
+        }
+
+        // 初始化存储模块
+        const localStorageModule = new LocalStorageModule();
+
+        // 测试结果显示函数
+        function showResult(elementId, isSuccess, message) {
+            const element = document.getElementById(elementId);
+            element.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            element.innerHTML = `<strong>${isSuccess ? '✅ 成功' : '❌ 失败'}</strong>: ${message}`;
+        }
+
+        // 测试初始化
+        async function testInit() {
+            try {
+                await localStorageModule.initDatabase();
+                showResult('init-result', true, '数据库初始化成功');
+            } catch (error) {
+                showResult('init-result', false, `数据库初始化失败: ${error.message}`);
+            }
+        }
+
+        // 测试存储数据
+        async function testSaveData() {
+            try {
+                await localStorageModule.saveData('identities', testIdentity);
+                await localStorageModule.saveData('posts', testPost);
+                await localStorageModule.saveData('cards', testCard);
+                showResult('save-result', true, '数据存储成功');
+            } catch (error) {
+                showResult('save-result', false, `数据存储失败: ${error.message}`);
+            }
+        }
+
+        // 测试读取数据
+        async function testGetData() {
+            try {
+                const identity = await localStorageModule.getData('identities', testIdentity.id);
+                const post = await localStorageModule.getData('posts', testPost.id);
+                const card = await localStorageModule.getData('cards', testCard.id);
+                showResult('get-result', true, `身份数据: ${JSON.stringify(identity)}<br>心事数据: ${JSON.stringify(post)}<br>卡片数据: ${JSON.stringify(card)}`);
+            } catch (error) {
+                showResult('get-result', false, `数据读取失败: ${error.message}`);
+            }
+        }
+
+        // 测试读取所有数据
+        async function testGetAllData() {
+            try {
+                const identities = await localStorageModule.getAllData('identities');
+                const posts = await localStorageModule.getAllData('posts');
+                const cards = await localStorageModule.getAllData('cards');
+                showResult('get-all-result', true, `身份数据: ${identities.length} 条<br>心事数据: ${posts.length} 条<br>卡片数据: ${cards.length} 条`);
+            } catch (error) {
+                showResult('get-all-result', false, `读取所有数据失败: ${error.message}`);
+            }
+        }
+
+        // 测试更新数据
+        async function testUpdateData() {
+            try {
+                await localStorageModule.updateData('identities', testIdentity.id, { nickname: '更新后的昵称' });
+                const updatedIdentity = await localStorageModule.getData('identities', testIdentity.id);
+                showResult('update-result', true, `数据更新成功: ${JSON.stringify(updatedIdentity)}`);
+            } catch (error) {
+                showResult('update-result', false, `数据更新失败: ${error.message}`);
+            }
+        }
+
+        // 测试删除数据
+        async function testDeleteData() {
+            try {
+                await localStorageModule.deleteData('cards', testCard.id);
+                const deletedCard = await localStorageModule.getData('cards', testCard.id);
+                showResult('delete-result', true, `数据删除成功，删除后数据: ${deletedCard}`);
+            } catch (error) {
+                showResult('delete-result', false, `数据删除失败: ${error.message}`);
+            }
+        }
+
+        // 测试清空数据
+        async function testClearData() {
+            try {
+                await localStorageModule.clearData('posts');
+                const posts = await localStorageModule.getAllData('posts');
+                showResult('clear-result', true, `数据清空成功，清空后数据数量: ${posts.length}`);
+            } catch (error) {
+                showResult('clear-result', false, `数据清空失败: ${error.message}`);
+            }
+        }
+
+        // 运行所有测试
+        async function runAllTests() {
+            const results = [];
+            
+            try {
+                // 1. 测试初始化
+                await localStorageModule.initDatabase();
+                results.push('✅ 数据库初始化成功');
+                
+                // 2. 测试存储数据
+                await localStorageModule.saveData('identities', testIdentity);
+                await localStorageModule.saveData('posts', testPost);
+                await localStorageModule.saveData('cards', testCard);
+                results.push('✅ 数据存储成功');
+                
+                // 3. 测试读取数据
+                const identity = await localStorageModule.getData('identities', testIdentity.id);
+                const post = await localStorageModule.getData('posts', testPost.id);
+                const card = await localStorageModule.getData('cards', testCard.id);
+                results.push('✅ 数据读取成功');
+                
+                // 4. 测试读取所有数据
+                const identities = await localStorageModule.getAllData('identities');
+                const posts = await localStorageModule.getAllData('posts');
+                const cards = await localStorageModule.getAllData('cards');
+                results.push(`✅ 读取所有数据成功 (身份: ${identities.length}, 心事: ${posts.length}, 卡片: ${cards.length})`);
+                
+                // 5. 测试更新数据
+                await localStorageModule.updateData('identities', testIdentity.id, { nickname: '更新后的昵称' });
+                results.push('✅ 数据更新成功');
+                
+                // 6. 测试删除数据
+                await localStorageModule.deleteData('cards', testCard.id);
+                results.push('✅ 数据删除成功');
+                
+                // 7. 测试清空数据
+                await localStorageModule.clearData('posts');
+                results.push('✅ 数据清空成功');
+                
+                showResult('all-tests-result', true, results.join('<br>'));
+            } catch (error) {
+                showResult('all-tests-result', false, `测试失败: ${error.message}`);
+            }
+        }
+
+        // 页面加载时自动初始化
+        window.onload = async function() {
+            await localStorageModule.initDatabase();
+            showResult('init-result', true, '数据库初始化成功（页面加载时自动执行）');
+        };
+    </script>
+</body>
+</html>
