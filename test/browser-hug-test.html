@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拥抱反馈模块浏览器测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .success {
+            border-left: 4px solid #28a745;
+        }
+        .error {
+            border-left: 4px solid #dc3545;
+        }
+        .info {
+            border-left: 4px solid #17a2b8;
+        }
+        .card-list {
+            margin: 20px 0;
+        }
+        .card-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+        }
+        .hug-count {
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        .notification-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <h1>拥抱反馈模块浏览器测试</h1>
+
+    <div class="test-section">
+        <h2>1. 测试拥抱计数拉取</h2>
+        <button onclick="testFetchHugCounts()">拉取拥抱计数</button>
+        <div id="fetch-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 测试拥抱提示</h2>
+        <button onclick="testShowHugNotification()">显示拥抱提示</button>
+        <div id="notification-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 测试回声页数据</h2>
+        <button onclick="testEchoPageData()">获取回声页数据</button>
+        <div id="echo-result" class="result"></div>
+        <div id="card-list" class="card-list"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 测试拥抱统计</h2>
+        <button onclick="testHugStatistics()">获取拥抱统计</button>
+        <div id="statistics-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. 测试完整流程</h2>
+        <button onclick="testCompleteFlow()">执行完整流程</button>
+        <div id="complete-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>6. 测试数据管理</h2>
+        <button onclick="createTestCard()">创建测试卡片</button>
+        <button onclick="incrementHug()">增加拥抱数</button>
+        <button onclick="clearTestData()">清除测试数据</button>
+        <div id="data-result" class="result"></div>
+    </div>
+
+    <div class="notification-area" id="notification-area"></div>
+
+    <script src="../src/storage/localStorage.js"></script>
+    <script src="../src/hug/hugFeedback.js"></script>
+    <script>
+        let testCardId = null;
+
+        async function testFetchHugCounts() {
+            const resultDiv = document.getElementById('fetch-result');
+            try {
+                const shareIds = ['test-share-1', 'test-share-2'];
+                const hugCounts = await hugFeedbackModule.fetchHugCounts(shareIds);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <p>✅ 拉取拥抱计数成功</p>
+                    <p>返回数据: ${JSON.stringify(hugCounts, null, 2)}</p>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        function testShowHugNotification() {
+            const resultDiv = document.getElementById('notification-result');
+            try {
+                hugFeedbackModule.showHugNotification(3);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = '<p>✅ 拥抱提示显示成功</p>';
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testEchoPageData() {
+            const resultDiv = document.getElementById('echo-result');
+            const cardList = document.getElementById('card-list');
+            try {
+                const echoData = await hugFeedbackModule.getEchoPageData();
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `<p>✅ 获取回声页数据成功，卡片数量: ${echoData.length}</p>`;
+                
+                cardList.innerHTML = '';
+                if (echoData.length > 0) {
+                    echoData.forEach(card => {
+                        const cardItem = document.createElement('div');
+                        cardItem.className = 'card-item';
+                        cardItem.innerHTML = `
+                            <p><strong>卡片ID:</strong> ${card.id}</p>
+                            <p><strong>诗句:</strong> ${card.ai_poem}</p>
+                            <p><strong>分享ID:</strong> ${card.share_id}</p>
+                            <p><strong>拥抱数:</strong> <span class="hug-count">${card.hugs_count || 0}</span></p>
+                        `;
+                        cardList.appendChild(cardItem);
+                    });
+                } else {
+                    cardList.innerHTML = '<p>暂无卡片数据</p>';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testHugStatistics() {
+            const resultDiv = document.getElementById('statistics-result');
+            try {
+                const statistics = await hugFeedbackModule.getHugStatistics();
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <p>✅ 获取拥抱统计成功</p>
+                    <p>总卡片数: ${statistics.total_cards}</p>
+                    <p>总拥抱数: ${statistics.total_hugs}</p>
+                    <p>有拥抱的卡片数: ${statistics.hug_cards_count}</p>
+                    <p>平均每卡拥抱数: ${statistics.average_hugs_per_card}</p>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testCompleteFlow() {
+            const resultDiv = document.getElementById('complete-result');
+            try {
+                resultDiv.className = 'result info';
+                resultDiv.innerHTML = '<p>执行完整流程中...</p>';
+                
+                const result = await hugFeedbackModule.fetchAndUpdateHugCounts();
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <p>✅ 完整流程执行成功</p>
+                    <p>更新卡片数: ${result.updated}</p>
+                    <p>新增拥抱: ${JSON.stringify(result.newHugs, null, 2)}</p>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function createTestCard() {
+            const resultDiv = document.getElementById('data-result');
+            try {
+                const testCard = {
+                    id: 'test-card-' + Date.now(),
+                    post_id: 'test-post-' + Date.now(),
+                    share_id: 'test-share-' + Date.now(),
+                    ai_poem: '测试诗句 ' + Date.now(),
+                    sticker_comfort: '安慰文案',
+                    sticker_gossip: '吃瓜文案',
+                    sticker_roast: '损友文案',
+                    hugs_count: 0,
+                    created_at: Date.now()
+                };
+                await localStorageModule.saveData('cards', testCard);
+                testCardId = testCard.id;
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `<p>✅ 测试卡片创建成功，ID: ${testCard.id}</p>`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function incrementHug() {
+            const resultDiv = document.getElementById('data-result');
+            try {
+                if (!testCardId) {
+                    throw new Error('请先创建测试卡片');
+                }
+                const updatedCard = await hugFeedbackModule.incrementHugLocally(testCardId);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `<p>✅ 拥抱数增加成功，当前拥抱数: ${updatedCard.hugs_count}</p>`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function clearTestData() {
+            const resultDiv = document.getElementById('data-result');
+            try {
+                const cards = await localStorageModule.getAllData('cards');
+                for (const card of cards) {
+                    if (card.id.startsWith('test-card-')) {
+                        await localStorageModule.deleteData('cards', card.id);
+                    }
+                }
+                testCardId = null;
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = '<p>✅ 测试数据清除成功</p>';
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        // 初始化
+        console.log('拥抱反馈模块浏览器测试页面加载完成');
+    </script>
+</body>
+</html>

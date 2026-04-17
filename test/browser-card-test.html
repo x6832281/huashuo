@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卡片生成模块浏览器测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .success {
+            border-left: 4px solid #28a745;
+        }
+        .error {
+            border-left: 4px solid #dc3545;
+        }
+        canvas {
+            margin-top: 10px;
+            border: 1px solid #ddd;
+        }
+        img {
+            margin-top: 10px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>卡片生成模块浏览器测试</h1>
+
+    <div class="test-section">
+        <h2>1. 测试创建卡片</h2>
+        <button onclick="testCreateCard()">创建卡片</button>
+        <div id="create-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 测试生成卡片</h2>
+        <button onclick="testGenerateCard()">生成卡片</button>
+        <div id="generate-result" class="result"></div>
+        <div id="card-preview"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 测试导出卡片</h2>
+        <button onclick="testExportCard()">导出卡片</button>
+        <div id="export-result" class="result"></div>
+        <div id="export-preview"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 测试分享卡片</h2>
+        <button onclick="testShareCard()">分享卡片</button>
+        <div id="share-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. 测试拥抱功能</h2>
+        <button onclick="testIncrementHug()">增加拥抱数</button>
+        <div id="hug-result" class="result"></div>
+    </div>
+
+    <script src="../src/storage/localStorage.js"></script>
+    <script src="../src/ai/aiTranslation.js"></script>
+    <script src="../src/card/cardGeneration.js"></script>
+    <script>
+        let testCard = null;
+
+        async function testCreateCard() {
+            const resultDiv = document.getElementById('create-result');
+            try {
+                const aiResult = await aiTranslationModule.translateText('今天心情很好！');
+                testCard = await cardGenerationModule.createCard('test-post-id', aiResult);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <p>✅ 卡片创建成功</p>
+                    <p>ID: ${testCard.id}</p>
+                    <p>分享ID: ${testCard.share_id}</p>
+                    <p>诗句: ${testCard.ai_poem}</p>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testGenerateCard() {
+            const resultDiv = document.getElementById('generate-result');
+            const previewDiv = document.getElementById('card-preview');
+            try {
+                if (!testCard) {
+                    throw new Error('请先创建卡片');
+                }
+                const canvas = cardGenerationModule.generateCard(testCard);
+                previewDiv.innerHTML = '';
+                previewDiv.appendChild(canvas);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = '<p>✅ 卡片生成成功</p>';
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testExportCard() {
+            const resultDiv = document.getElementById('export-result');
+            const previewDiv = document.getElementById('export-preview');
+            try {
+                if (!testCard) {
+                    throw new Error('请先创建卡片');
+                }
+                const canvas = cardGenerationModule.generateCard(testCard);
+                const blob = cardGenerationModule.exportCard(canvas);
+                const url = URL.createObjectURL(blob);
+                const img = document.createElement('img');
+                img.src = url;
+                img.width = 300;
+                previewDiv.innerHTML = '';
+                previewDiv.appendChild(img);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `<p>✅ 卡片导出成功</p><p>文件大小: ${(blob.size / 1024).toFixed(2)} KB</p>`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testShareCard() {
+            const resultDiv = document.getElementById('share-result');
+            try {
+                if (!testCard) {
+                    throw new Error('请先创建卡片');
+                }
+                const canvas = cardGenerationModule.generateCard(testCard);
+                const blob = cardGenerationModule.exportCard(canvas);
+                const shared = await cardGenerationModule.shareCard(testCard, blob);
+                if (shared) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '<p>✅ 分享成功</p>';
+                } else {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '<p>⚠️  Web Share API不可用，使用兜底方案</p>';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testIncrementHug() {
+            const resultDiv = document.getElementById('hug-result');
+            try {
+                if (!testCard) {
+                    throw new Error('请先创建卡片');
+                }
+                const huggedCard = await cardGenerationModule.incrementHug(testCard.id);
+                testCard = huggedCard;
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `<p>✅ 拥抱数增加成功</p><p>当前拥抱数: ${huggedCard.hugs_count}</p>`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        // 初始化测试
+        console.log('卡片生成模块浏览器测试页面加载完成');
+    </script>
+</body>
+</html>

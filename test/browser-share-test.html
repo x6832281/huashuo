@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分享功能模块浏览器测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .success {
+            border-left: 4px solid #28a745;
+        }
+        .error {
+            border-left: 4px solid #dc3545;
+        }
+        .info {
+            border-left: 4px solid #17a2b8;
+        }
+        .card-preview {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        img {
+            max-width: 300px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>分享功能模块浏览器测试</h1>
+
+    <div class="test-section">
+        <h2>1. 测试分享能力</h2>
+        <button onclick="testShareCapabilities()">检测分享能力</button>
+        <div id="capabilities-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 测试系统分享</h2>
+        <button onclick="testSystemShare()">系统分享</button>
+        <div id="system-share-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 测试复制功能</h2>
+        <button onclick="testCopyLink()">复制分享链接</button>
+        <button onclick="testCopyText()">复制文案</button>
+        <div id="copy-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 测试图片保存</h2>
+        <button onclick="testSaveImage()">保存测试图片</button>
+        <div id="save-result" class="result"></div>
+        <div id="image-preview"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. 测试兜底分享</h2>
+        <button onclick="testFallbackShare()">兜底分享</button>
+        <div id="fallback-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>6. 测试分享记录</h2>
+        <button onclick="testShareRecords()">查看分享记录</button>
+        <div id="records-result" class="result"></div>
+    </div>
+
+    <div class="card-preview">
+        <h3>测试卡片数据</h3>
+        <p><strong>卡片ID:</strong> test-card-id-123</p>
+        <p><strong>分享ID:</strong> test-share-id-123</p>
+        <p><strong>诗句:</strong> 月上柳梢人静时</p>
+    </div>
+
+    <script src="../src/storage/localStorage.js"></script>
+    <script src="../src/share/shareFunctionality.js"></script>
+    <script>
+        const testCardData = {
+            id: 'test-card-id-123',
+            share_id: 'test-share-id-123',
+            ai_poem: '月上柳梢人静时'
+        };
+
+        async function testShareCapabilities() {
+            const resultDiv = document.getElementById('capabilities-result');
+            try {
+                const capabilities = await shareFunctionalityModule.testShareCapabilities();
+                resultDiv.className = 'result info';
+                resultDiv.innerHTML = `
+                    <p>系统分享支持: ${capabilities.systemShare}</p>
+                    <p>剪贴板支持: ${capabilities.clipboard}</p>
+                    <p>图片保存支持: ${capabilities.saveImage}</p>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testSystemShare() {
+            const resultDiv = document.getElementById('system-share-result');
+            try {
+                const isSupported = shareFunctionalityModule.isShareSupported();
+                if (!isSupported) {
+                    resultDiv.className = 'result info';
+                    resultDiv.innerHTML = '<p>⚠️  系统分享不可用，请使用其他分享方式</p>';
+                    return;
+                }
+                
+                const result = await shareFunctionalityModule.shareViaSystem(testCardData, null);
+                if (result) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '<p>✅ 系统分享成功</p>';
+                } else {
+                    resultDiv.className = 'result info';
+                    resultDiv.innerHTML = '<p>⚠️  系统分享取消或失败</p>';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testCopyLink() {
+            const resultDiv = document.getElementById('copy-result');
+            try {
+                const success = await shareFunctionalityModule.copyShareLink(testCardData.share_id);
+                if (success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '<p>✅ 分享链接复制成功</p>';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = '<p>❌ 分享链接复制失败</p>';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testCopyText() {
+            const resultDiv = document.getElementById('copy-result');
+            try {
+                const success = await shareFunctionalityModule.copyText(testCardData.ai_poem);
+                if (success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '<p>✅ 文案复制成功</p>';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = '<p>❌ 文案复制失败</p>';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        function testSaveImage() {
+            const resultDiv = document.getElementById('save-result');
+            const previewDiv = document.getElementById('image-preview');
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 200;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.fillStyle = '#f8f9fa';
+                ctx.fillRect(0, 0, 300, 200);
+                ctx.fillStyle = '#333';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('测试图片', 150, 100);
+                
+                canvas.toBlob((blob) => {
+                    const success = shareFunctionalityModule.saveImage(blob);
+                    if (success) {
+                        resultDiv.className = 'result success';
+                        resultDiv.innerHTML = '<p>✅ 图片保存成功</p>';
+                        
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(blob);
+                        previewDiv.innerHTML = '';
+                        previewDiv.appendChild(img);
+                    } else {
+                        resultDiv.className = 'result error';
+                        resultDiv.innerHTML = '<p>❌ 图片保存失败</p>';
+                    }
+                });
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testFallbackShare() {
+            const resultDiv = document.getElementById('fallback-result');
+            try {
+                const result = await shareFunctionalityModule.shareWithFallback(testCardData, null);
+                if (result.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <p>✅ 兜底分享成功</p>
+                        <p>分享链接: ${result.shareLink}</p>
+                        <p>复制链接: ${result.copyLinkSuccess ? '成功' : '失败'}</p>
+                        <p>复制文案: ${result.copyTextSuccess ? '成功' : '失败'}</p>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `<p>❌ 兜底分享失败: ${result.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        async function testShareRecords() {
+            const resultDiv = document.getElementById('records-result');
+            try {
+                shareFunctionalityModule.recordShareAction(testCardData.id, 'test');
+                const records = await shareFunctionalityModule.getShareRecords(testCardData.id);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <p>✅ 分享记录功能正常</p>
+                    <p>记录数量: ${records.length}</p>
+                    ${records.map(record => `
+                        <p>ID: ${record.id}, 类型: ${record.action_type}, 时间: ${new Date(record.created_at).toLocaleString()}</p>
+                    `).join('')}
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        // 初始化测试
+        console.log('分享功能模块浏览器测试页面加载完成');
+        testShareCapabilities();
+    </script>
+</body>
+</html>

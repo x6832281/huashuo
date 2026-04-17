@@ -1,21 +1,37 @@
 {
   "name": "whisper",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "话说APP - 情绪树洞应用",
+  "type": "module",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/x6832281/huashuo.git"
   },
-  "keywords": [],
+  "keywords": [
+    "emotion",
+    "treehole",
+    "pwa",
+    "vue"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/x6832281/huashuo/issues"
   },
-  "homepage": "https://github.com/x6832281/huashuo#readme"
+  "homepage": "https://github.com/x6832281/huashuo#readme",
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "terser": "^5.0.0"
+  },
+  "dependencies": {
+    "vue": "^3.0.0",
+    "vue-router": "^4.0.0",
+    "pinia": "^2.0.0"
+  }
 }

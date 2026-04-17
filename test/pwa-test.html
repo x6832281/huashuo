@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA 配置模块测试</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/icons/icon-192x192.png" type="image/png">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .success {
+            border-left: 4px solid #28a745;
+        }
+        .error {
+            border-left: 4px solid #dc3545;
+        }
+        .info {
+            border-left: 4px solid #17a2b8;
+        }
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>PWA 配置模块测试</h1>
+
+    <div class="test-section">
+        <h2>1. 基本信息</h2>
+        <button onclick="checkBasicInfo()">检查基本信息</button>
+        <div id="basic-info-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Service Worker</h2>
+        <button onclick="registerServiceWorker()">注册 Service Worker</button>
+        <button onclick="unregisterServiceWorker()">注销 Service Worker</button>
+        <button onclick="checkServiceWorkerStatus()">检查 Service Worker 状态</button>
+        <div id="service-worker-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 缓存管理</h2>
+        <button onclick="cacheAssets()">缓存资源</button>
+        <button onclick="clearCache()">清除缓存</button>
+        <button onclick="checkCacheStatus()">检查缓存状态</button>
+        <div id="cache-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 离线功能</h2>
+        <button onclick="testOfflineAccess()">测试离线访问</button>
+        <div id="offline-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. 添加到主屏幕</h2>
+        <button onclick="checkAddToHomeScreenSupport()">检查支持情况</button>
+        <button onclick="promptAddToHomeScreen()" id="addToHomeScreenBtn" disabled>添加到主屏幕</button>
+        <div id="add-to-home-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>6. PWA 功能列表</h2>
+        <ul class="feature-list" id="feature-list">
+            <li>Web App Manifest: <span id="manifest-status">检测中...</span></li>
+            <li>Service Worker: <span id="sw-status">检测中...</span></li>
+            <li>离线访问: <span id="offline-status">检测中...</span></li>
+            <li>添加到主屏幕: <span id="a2hs-status">检测中...</span></li>
+            <li>缓存策略: <span id="cache-status">检测中...</span></li>
+        </ul>
+    </div>
+
+    <script>
+        let deferredPrompt;
+
+        // 检测基本信息
+        function checkBasicInfo() {
+            const resultDiv = document.getElementById('basic-info-result');
+            try {
+                const info = {
+                    url: window.location.href,
+                    isSecure: window.isSecureContext,
+                    userAgent: navigator.userAgent,
+                    language: navigator.language,
+                    online: navigator.onLine
+                };
+                resultDiv.className = 'result info';
+                resultDiv.innerHTML = `
+                    <p>URL: ${info.url}</p>
+                    <p>是否安全上下文: ${info.isSecure ? '是' : '否'}</p>
+                    <p>用户代理: ${info.userAgent}</p>
+                    <p>语言: ${info.language}</p>
+                    <p>是否在线: ${info.online ? '是' : '否'}</p>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+
+        // 注册 Service Worker
+        async function registerServiceWorker() {
+            const resultDiv = document.getElementById('service-worker-result');
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.register('/service-worker.js');
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <p>✅ Service Worker 注册成功</p>
+                        <p>作用域: ${registration.scope}</p>
+                        <p>状态: ${registration.active ? '激活' : '未激活'}</p>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = '<p>❌ 您的浏览器不支持 Service Worker</p>';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 注册失败: ${error.message}</p>`;
+            }
+        }
+
+        // 注销 Service Worker
+        async function unregisterServiceWorker() {
+            const resultDiv = document.getElementById('service-worker-result');
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                        await registration.unregister();
+                    }
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '<p>✅ Service Worker 注销成功</p>';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = '<p>❌ 您的浏览器不支持 Service Worker</p>';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 注销失败: ${error.message}</p>`;
+            }
+        }
+
+        // 检查 Service Worker 状态
+        async function checkServiceWorkerStatus() {
+            const resultDiv = document.getElementById('service-worker-result');
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    if (registrations.length > 0) {
+                        resultDiv.className = 'result success';
+                        resultDiv.innerHTML = `
+                            <p>✅ Service Worker 已注册</p>
+                            ${registrations.map((reg, index) => `
+                                <p>注册 ${index + 1}: ${reg.scope}</p>
+                                <p>状态: ${reg.active ? '激活' : '未激活'}</p>
+                            `).join('')}
+                        `;
+                    } else {
+                        resultDiv.className = 'result info';
+                        resultDiv.innerHTML = '<p>⚠️  未注册 Service Worker</p>';
+                    }
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = '<p>❌ 您的浏览器不支持 Service Worker</p>';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 检查失败: ${error.message}</p>`;
+            }
+        }
+
+        // 缓存资源
+        async function cacheAssets() {
+            const resultDiv = document.getElementById('cache-result');
+            try {
+                if ('caches' in window) {
+                    const cache = await caches.open('test-cache');
+                    await cache.addAll([
+                        '/',
+                        '/index.html',
+                        '/manifest.json'
+                    ]);
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '<p>✅ 资源缓存成功</p>';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = '<p>❌ 您的浏览器不支持缓存 API</p>';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 缓存失败: ${error.message}</p>`;
+            }
+        }
+
+        // 清除缓存
+        async function clearCache() {
+            const resultDiv = document.getElementById('cache-result');
+            try {
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    for (const cacheName of cacheNames) {
+                        await caches.delete(cacheName);
+                    }
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '<p>✅ 缓存清除成功</p>';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = '<p>❌ 您的浏览器不支持缓存 API</p>';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 清除失败: ${error.message}</p>`;
+            }
+        }
+
+        // 检查缓存状态
+        async function checkCacheStatus() {
+            const resultDiv = document.getElementById('cache-result');
+            try {
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    resultDiv.className = 'result info';
+                    resultDiv.innerHTML = `
+                        <p>缓存数量: ${cacheNames.length}</p>
+                        ${cacheNames.map(name => `<p>缓存名称: ${name}</p>`).join('')}
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = '<p>❌ 您的浏览器不支持缓存 API</p>';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p>❌ 检查失败: ${error.message}</p>`;
+            }
+        }
+
+        // 测试离线访问
+        function testOfflineAccess() {
+            const resultDiv = document.getElementById('offline-result');
+            if (!navigator.onLine) {
+                resultDiv.className = 'result info';
+                resultDiv.innerHTML = '<p>⚠️  当前处于离线状态，尝试访问页面...</p>';
+                setTimeout(() => {
+                    resultDiv.innerHTML += '<p>✅ 页面可以正常访问</p>';
+                }, 1000);
+            } else {
+                resultDiv.className = 'result info';
+                resultDiv.innerHTML = '<p>⚠️  当前处于在线状态，请断开网络后测试</p>';
+            }
+        }
+
+        // 检查添加到主屏幕支持
+        function checkAddToHomeScreenSupport() {
+            const resultDiv = document.getElementById('add-to-home-result');
+            const isSupported = 'BeforeInstallPromptEvent' in window;
+            resultDiv.className = isSupported ? 'result success' : 'result info';
+            resultDiv.innerHTML = isSupported ? 
+                '<p>✅ 支持添加到主屏幕</p>' : 
+                '<p>⚠️  不支持添加到主屏幕</p>';
+        }
+
+        // 提示添加到主屏幕
+        function promptAddToHomeScreen() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    const resultDiv = document.getElementById('add-to-home-result');
+                    if (choiceResult.outcome === 'accepted') {
+                        resultDiv.className = 'result success';
+                        resultDiv.innerHTML = '<p>✅ 用户已添加到主屏幕</p>';
+                    } else {
+                        resultDiv.className = 'result info';
+                        resultDiv.innerHTML = '<p>⚠️  用户取消添加到主屏幕</p>';
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                const resultDiv = document.getElementById('add-to-home-result');
+                resultDiv.className = 'result info';
+                resultDiv.innerHTML = '<p>⚠️  无法提示添加到主屏幕</p>';
+            }
+        }
+
+        // 检测 PWA 功能
+        function checkPwaFeatures() {
+            // 检测 Web App Manifest
+            const manifestStatus = document.getElementById('manifest-status');
+            const manifest = document.querySelector('link[rel="manifest"]');
+            manifestStatus.textContent = manifest ? '✅' : '❌';
+
+            // 检测 Service Worker
+            const swStatus = document.getElementById('sw-status');
+            swStatus.textContent = 'serviceWorker' in navigator ? '✅' : '❌';
+
+            // 检测离线访问
+            const offlineStatus = document.getElementById('offline-status');
+            offlineStatus.textContent = 'caches' in window ? '✅' : '❌';
+
+            // 检测添加到主屏幕
+            const a2hsStatus = document.getElementById('a2hs-status');
+            a2hsStatus.textContent = 'BeforeInstallPromptEvent' in window ? '✅' : '❌';
+
+            // 检测缓存策略
+            const cacheStatus = document.getElementById('cache-status');
+            cacheStatus.textContent = 'caches' in window ? '✅' : '❌';
+        }
+
+        // 监听安装事件
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('addToHomeScreenBtn').disabled = false;
+            console.log('可以添加到主屏幕');
+        });
+
+        // 初始化
+        window.addEventListener('load', () => {
+            checkBasicInfo();
+            checkPwaFeatures();
+            // 自动注册 Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(() => {
+                        console.log('Service Worker 注册成功');
+                    })
+                    .catch((error) => {
+                        console.error('Service Worker 注册失败:', error);
+                    });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 // 引入本地存储模块
-const localStorageModule = require('../src/storage/localStorage');
+import localStorageModule from '../src/storage/localStorage.js';
 
 /**
  * 生成唯一ID的函数
