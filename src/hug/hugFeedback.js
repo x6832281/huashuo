@@ -88,16 +88,19 @@ class HugFeedbackModule {
         return [];
       }
 
-      // 发送POST请求到后端API
-      // 使用fetch API进行HTTP请求
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const response = await fetch(`${this.apiBaseUrl}/share/batch`, {
-        method: 'POST',    // POST方法
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json'    // 请求体为JSON格式
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ share_ids: shareIds }),  // 请求体：分享ID数组
-        timeout: 5000    // 5秒超时
+        body: JSON.stringify({ share_ids: shareIds }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       // 检查API响应状态码
       // 如果响应不是2xx（成功），抛出错误

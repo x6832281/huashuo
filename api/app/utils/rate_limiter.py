@@ -8,7 +8,7 @@ class RateLimiter:
         self.hug_requests = defaultdict(float)  # {f"{device_id}:{share_id}": timestamp}
         self.path_requests = defaultdict(lambda: defaultdict(list))  # {path: {ip: [timestamps]}}
     
-    def is_ip_allowed(self, ip, limit=3, window=60):
+    def is_ip_allowed(self, ip, limit=60, window=60):
         """检查IP是否允许请求"""
         current_time = time.time()
         timestamps = self.ip_requests[ip]

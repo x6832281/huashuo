@@ -26,12 +26,14 @@
   },
   "homepage": "https://github.com/x6832281/huashuo#readme",
   "devDependencies": {
-    "vite": "^5.0.0",
-    "terser": "^5.0.0"
+    "terser": "^5.0.0",
+    "vite": "^5.0.0"
   },
   "dependencies": {
+    "@vitejs/plugin-vue": "^6.0.6",
+    "pinia": "^2.0.0",
+    "qrcode": "^1.5.4",
     "vue": "^3.0.0",
-    "vue-router": "^4.0.0",
-    "pinia": "^2.0.0"
+    "vue-router": "^4.0.0"
   }
 }

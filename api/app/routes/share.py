@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.services.share_service import create_share, add_hug, batch_get_hugs
@@ -20,14 +21,14 @@ class HugResponse(BaseModel):
     hugs_count: int
 
 class BatchHugRequest(BaseModel):
-    share_ids: list[str]
+    share_ids: List[str]
 
 class HugItem(BaseModel):
     share_id: str
     hugs_count: int
 
 class BatchHugResponse(BaseModel):
-    items: list[HugItem]
+    items: List[HugItem]
 
 @router.post("/create", response_model=ShareCreateResponse)
 async def create(request: ShareCreateRequest):

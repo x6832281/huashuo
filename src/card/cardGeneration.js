@@ -161,21 +161,20 @@ class CardGenerationModule {
    * @throws {Error} 如果卡片ID无效或卡片不存在，抛出错误
    */
   async getCard(cardId) {
-    // 验证卡片ID的合法性
     if (!cardId || typeof cardId !== 'string') {
       throw new Error('卡片ID无效');
     }
 
-    // 从本地存储中读取卡片对象
-    // 使用localStorageModule的getData方法，支持三级存储策略
     const card = await localStorageModule.getData('cards', cardId);
     
-    // 检查卡片是否存在
     if (!card) {
       throw new Error('卡片不存在');
     }
 
-    // 返回卡片对象
+    if (card.deleted_at) {
+      throw new Error('卡片不存在');
+    }
+
     return card;
   }
 
@@ -459,29 +458,30 @@ class CardGenerationModule {
    * @param {string} shareId - 分享链接的唯一ID
    * @returns {string} 返回二维码的Data URL（base64编码的PNG图片）
    */
-  generateQRCode(shareId) {
-    // 构建完整的分享链接
+  async generateQRCode(shareId) {
     const url = `${this.baseUrl}?id=${shareId}`;
-    
-    // 创建Canvas元素用于绘制二维码占位符
-    const canvas = document.createElement('canvas');
-    canvas.width = 120;   // 二维码宽度120px
-    canvas.height = 120;  // 二维码高度120px
-    const ctx = canvas.getContext('2d');
-
-    // 绘制白色背景
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 120, 120);
-
-    // 绘制分享ID的前8个字符
-    ctx.fillStyle = '#000000';    // 文字颜色（黑色）
-    ctx.font = '10px Arial, sans-serif';  // 字体（10px）
-    ctx.textAlign = 'center';     // 文字居中对齐
-    // 在中心位置绘制分享ID的前8个字符
-    ctx.fillText(shareId.substring(0, 8), 60, 60);
-
-    // 将Canvas转换为PNG格式的Data URL（base64编码）
-    return canvas.toDataURL('image/png');
+    try {
+      const QRCode = (await import('qrcode')).default;
+      const dataUrl = await QRCode.toDataURL(url, {
+        width: 120,
+        margin: 1,
+        color: { dark: '#1a1a2e', light: '#ffffff' },
+        errorCorrectionLevel: 'M'
+      });
+      return dataUrl;
+    } catch {
+      const canvas = document.createElement('canvas');
+      canvas.width = 120;
+      canvas.height = 120;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 120, 120);
+      ctx.fillStyle = '#000000';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(shareId.substring(0, 8), 60, 60);
+      return canvas.toDataURL('image/png');
+    }
   }
 
   /**

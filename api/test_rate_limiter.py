@@ -9,9 +9,9 @@ async def test_ip_rate_limit():
     ip = "192.168.1.1"
     
     for i in range(3):
-        assert rate_limiter.is_ip_allowed(ip), f"Request {i+1} should be allowed"
+        assert rate_limiter.is_ip_allowed(ip, limit=3), f"Request {i+1} should be allowed"
     
-    assert not rate_limiter.is_ip_allowed(ip), "Request exceeding limit should be rejected"
+    assert not rate_limiter.is_ip_allowed(ip, limit=3), "Request exceeding limit should be rejected"
     print("PASS: IP rate limiting test passed")
 
 async def test_device_rate_limit():

@@ -1,9 +1,9 @@
 from fastapi import HTTPException, Request
+from fastapi.responses import JSONResponse
 from .rate_limiter import RateLimiter
 
 rate_limiter = RateLimiter()
 
-# 路径限流规则
 PATH_LIMITS = {
     "/api/ai/translate": 5,
     "/api/share/create": 10,
@@ -12,21 +12,17 @@ PATH_LIMITS = {
 }
 
 async def rate_limit_middleware(request: Request, call_next):
-    """限流中间件"""
     ip = request.client.host
     path = request.url.path
-    
-    # 清理过期数据
+
     rate_limiter.clear_expired()
-    
-    # 检查路径限流
+
     if not rate_limiter.is_path_allowed(ip, path, PATH_LIMITS):
-        raise HTTPException(status_code=429, detail="请求过于频繁，请稍后再试")
-    
-    # 检查IP限流
+        return JSONResponse(status_code=429, content={"detail": "请求过于频繁，请稍后再试"})
+
     if not rate_limiter.is_ip_allowed(ip):
-        raise HTTPException(status_code=429, detail="请求过于频繁，请稍后再试")
-    
+        return JSONResponse(status_code=429, content={"detail": "请求过于频繁，请稍后再试"})
+
     response = await call_next(request)
     return response
 

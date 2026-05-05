@@ -42,13 +42,8 @@ class AITranslationModule {
    * 设置OpenRouter API端点、API Key以及各情绪频段的本地模板
    */
   constructor() {
-    // OpenRouter API端点地址
-    // 这是AI模型调用的URL，使用GPT-4o模型
-    this.apiEndpoint = 'https://api.openrouter.ai/v1/chat/completions';
-    
-    // API Key，从环境变量中获取
-    // 如果没有设置环境变量，使用空字符串（会触发降级到本地模板）
-    this.apiKey = process.env.OPENROUTER_API_KEY || '';
+    this.apiEndpoint = '/api/ai/translate';
+    this.apiKey = '';
     
     // 本地模板：当API调用失败时使用
     // 包含三个情绪频段（0、1、2）的预设内容
@@ -138,101 +133,35 @@ class AITranslationModule {
    */
   async translateText(text, style = 'heal_poem') {
     try {
-      // 检查是否配置了API Key
-      if (this.apiKey) {
-        // 有API Key，调用API生成内容
-        return await this.callAPI(text, style);
-      } else {
-        // 没有API Key，抛出错误触发降级
-        throw new Error('API key not set, using local template');
-      }
+      return await this.callAPI(text, style);
     } catch (error) {
-      // API调用失败，降级到本地模板
-      // 使用console.warn而不是error，因为降级是正常行为
       console.warn('API call failed, using local template:', error.message);
       return this.getLocalTemplate(text);
     }
   }
 
-  /**
-   * 调用OpenRouter API生成内容
-   * 使用GPT-4o模型进行情绪分析和内容生成
-   * 
-   * API请求格式：
-   * - 端点：https://api.openrouter.ai/v1/chat/completions
-   * - 模型：openai/gpt-4o
-   * - 温度：0.7（平衡创造性和准确性）
-   * 
-   * 系统提示词要求AI完成：
-   * 1. 分析文本情绪，确定情绪频段（0-2）
-   * 2. 生成一句简洁的诗句（≤15字）
-   * 3. 生成三类表情包文案（每类≤10字）
-   * 4. 按指定格式输出
-   * 
-   * @param {string} text - 要分析的文本内容
-   * @param {string} style - 翻译风格
-   * @returns {Promise<Object>} 返回API解析后的结果
-   * @throws {Error} 如果API请求失败（网络错误、认证失败等），抛出错误
-   */
   async callAPI(text, style) {
-    // 构建API请求的消息数组
-    // 包含系统提示词和用户输入
-    const messages = [
-      {
-        role: 'system',  // 系统角色：定义AI的行为和任务
-        content: `你是一个专业的情绪分析和文案生成助手。请完成以下任务：
-        1. 分析用户提供的文本情绪，确定情绪频段（0-2）：
-           - 0：低落/焦虑/疲惫
-           - 1：平静/波动/复杂
-           - 2：轻松/积极/被接住
-        2. 根据情绪频段生成以下内容：
-           - 一句简洁的诗句（≤15字，不含标点）
-           - 三类表情包文案（每类≤10字，附1个Emoji）：
-             * 安慰类
-             * 吃瓜类
-             * 损友式诋毁类（吐槽式打气，不攻击人格）
-        3. 输出格式：
-           情绪频段: [0-2]
-           诗句: [诗句内容]
-           安慰: [安慰文案]
-           吃瓜: [吃瓜文案]
-           损友: [损友文案]`
-      },
-      {
-        role: 'user',    // 用户角色：提供要分析的文本
-        content: text
-      }
-    ];
-
-    // 发送API请求
-    // 使用fetch API进行HTTP POST请求
     const response = await fetch(this.apiEndpoint, {
-      method: 'POST',    // POST方法
-      headers: {
-        'Content-Type': 'application/json',    // 请求体为JSON格式
-        'Authorization': `Bearer ${this.apiKey}`  // Bearer Token认证
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-4o',    // 使用GPT-4o模型
-        messages: messages,        // 消息数组
-        temperature: 0.7           // 温度参数：0.7平衡创造性和准确性
-      })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, style })
     });
 
-    // 检查API响应状态码
-    // 如果响应不是2xx（成功），抛出错误
     if (!response.ok) {
       throw new Error(`API request failed: ${response.status}`);
     }
 
-    // 解析API响应JSON
     const data = await response.json();
-    // 提取AI生成的内容
-    // data.choices[0].message.content 是GPT-4o的回复内容
-    const content = data.choices[0].message.content;
-    
-    // 解析AI回复，提取结构化数据
-    return this.parseAPIResponse(content);
+
+    if (data.mood_band !== undefined && data.ai_poem && data.stickers) {
+      return {
+        mood_band: data.mood_band,
+        ai_poem: data.ai_poem,
+        stickers: data.stickers
+      };
+    }
+
+    throw new Error('Invalid API response format');
   }
 
   /**

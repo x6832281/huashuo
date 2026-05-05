@@ -441,102 +441,29 @@ class ShareFunctionalityModule {
     }
   }
 
-  /**
-   * 降级复制方法（重复定义，保留以兼容）
-   * 当现代Clipboard API不可用时，使用传统的textarea方法复制
-   * 
-   * @param {string} text - 要复制的文本内容
-   * @returns {boolean} 复制成功返回true，失败返回false
-   */
-  fallbackCopyTextToClipboard(text) {
-    try {
-      // 创建textarea元素
-      const textArea = document.createElement('textarea');
-      textArea.value = text;  // 设置要复制的文本
-      
-      // 将元素隐藏（固定在视窗外）
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      
-      // 将textarea添加到页面
-      document.body.appendChild(textArea);
-      textArea.focus();    // 获取焦点
-      textArea.select();   // 选中所有文本
-      
-      // 执行复制命令
-      const success = document.execCommand('copy');
-      
-      // 清理textarea元素
-      document.body.removeChild(textArea);
-      
-      // 返回复制结果
-      return success;
-    } catch (error) {
-      // 降级复制失败
-      console.error('降级复制失败:', error);
-      return false;
-    }
-  }
-
-  /**
-   * 生成唯一ID
-   * 使用时间戳+随机数的方式生成唯一标识符
-   * 
-   * @returns {string} 返回生成的唯一ID字符串
-   */
   generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
-  /**
-   * 分享卡片（主入口方法）
-   * 尝试系统分享，失败则返回兜底方案
-   * 
-   * @param {Object} cardData - 卡片数据对象
-   * @param {Blob} imageBlob - 导出的图片Blob对象
-   * @returns {Promise<Object>} 返回分享结果
-   *   格式：{ success: true/false, method: 'system'/'fallback', error: '错误信息' }
-   */
   async shareCard(cardData, imageBlob) {
     try {
-      // 尝试系统分享
       const shared = await this.shareViaSystem(cardData, imageBlob);
-      
       if (shared) {
-        // 系统分享成功
         return { success: true, method: 'system' };
       } else {
-        // 系统分享失败，使用兜底方案
         return { success: false, method: 'fallback' };
       }
     } catch (error) {
-      // 分享卡片失败
       console.error('分享卡片失败:', error);
       return { success: false, error: error.message };
     }
   }
 
-  /**
-   * 兜底分享
-   * 当系统分享不可用时，复制链接和文案
-   * 
-   * @param {Object} cardData - 卡片数据对象
-   * @param {Blob} imageBlob - 导出的图片Blob对象
-   * @returns {Promise<Object>} 返回兜底分享结果
-   */
   async shareWithFallback(cardData, imageBlob) {
     try {
-      // 生成分享链接
       const shareLink = this.generateShareLink(cardData.share_id);
-      
-      // 复制链接
       const copyLinkSuccess = await this.copyShareLink(cardData.share_id);
-      
-      // 复制AI诗句
       const copyTextSuccess = await this.copyText(cardData.ai_poem);
-      
-      // 返回结果
       return {
         success: true,
         shareLink: shareLink,
@@ -544,72 +471,20 @@ class ShareFunctionalityModule {
         copyTextSuccess: copyTextSuccess
       };
     } catch (error) {
-      // 兜底分享失败
       console.error('兜底分享失败:', error);
       return { success: false, error: error.message };
     }
   }
 
-  /**
-   * 获取可用的分享方式列表（重复定义，保留以兼容）
-   * 
-   * @returns {Array<string>} 返回可用的分享方式列表
-   */
-  getShareMethods() {
-    const methods = [];
-    
-    // 检查是否支持系统分享
-    if (navigator.share) {
-      methods.push('system');
-    }
-    
-    // 其他分享方式
-    methods.push('saveImage', 'copyLink', 'copyText');
-    
-    return methods;
-  }
-
-  /**
-   * 检查是否支持系统分享（重复定义，保留以兼容）
-   * 
-   * @returns {boolean} 支持返回true，否则返回false
-   */
-  isShareSupported() {
-    return navigator.share !== undefined;
-  }
-
-  /**
-   * 检查是否支持剪贴板-API（重复定义，保留以兼容）
-   * 
-   * @returns {boolean} 支持返回true，否则返回false
-   */
-  isClipboardSupported() {
-    return navigator.clipboard !== undefined && window.isSecureContext;
-  }
-
-  /**
-   * 测试分享能力
-   * 检测当前环境支持的分享功能
-   * 
-   * @returns {Promise<Object>} 返回支持的能力列表
-   */
   async testShareCapabilities() {
-    // 检测是否在浏览器环境
     const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
-    
     return {
-      systemShare: this.isShareSupported(),    // 是否支持系统分享
-      clipboard: this.isClipboardSupported(),  // 是否支持剪贴板
-      saveImage: isBrowser && typeof document.createElement === 'function'  // 是否支持保存图片
+      systemShare: this.isShareSupported(),
+      clipboard: this.isClipboardSupported(),
+      saveImage: isBrowser && typeof document.createElement === 'function'
     };
   }
 
-  /**
-   * 检查是否在浏览器环境中
-   * 检测window和document是否存在
-   * 
-   * @returns {boolean} 在浏览器环境返回true，否则返回false
-   */
   isBrowser() {
     return typeof window !== 'undefined' && typeof document !== 'undefined';
   }

@@ -2,168 +2,18 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>话说APP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>话说</title>
     <meta name="description" content="社恐/高敏感人群专属·零压力匿名情绪记录与加密分享工具">
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/icons/icon-192x192.png" type="image/png">
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-    <meta name="theme-color" content="#4a90e2">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #4a90e2;
-            text-align: center;
-        }
-        p {
-            color: #333;
-            line-height: 1.6;
-        }
-        .feature {
-            margin: 20px 0;
-            padding: 15px;
-            border-left: 4px solid #4a90e2;
-            background-color: #f8f9fa;
-        }
-        .pwa-info {
-            margin-top: 40px;
-            padding: 20px;
-            background-color: #e3f2fd;
-            border-radius: 4px;
-        }
-        button {
-            background-color: #4a90e2;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 10px;
-        }
-        button:hover {
-            background-color: #357abd;
-        }
-    </style>
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
-    <div class="container">
-        <h1>话说APP</h1>
-        <p>社恐/高敏感人群专属·零压力匿名情绪记录与加密分享工具</p>
-        
-        <div class="feature">
-            <h3>核心功能</h3>
-            <ul>
-                <li>情绪树洞：记录和管理情绪</li>
-                <li>AI翻译：智能分析和翻译情绪</li>
-                <li>卡片生成：创建分享卡片</li>
-                <li>分享功能：多平台分享</li>
-                <li>拥抱功能：支持和鼓励</li>
-            </ul>
-        </div>
-        
-        <div class="pwa-info">
-            <h3>PWA 功能</h3>
-            <p>本应用支持 PWA（渐进式Web应用）功能，可以：</p>
-            <ul>
-                <li>添加到主屏幕，获得接近原生APP的体验</li>
-                <li>离线访问，即使没有网络也能使用</li>
-                <li>快速加载，提升用户体验</li>
-            </ul>
-            <p id="pwa-status">正在检测 PWA 支持...</p>
-        </div>
-        
-        <div style="text-align: center; margin-top: 40px;">
-            <button onclick="checkPwaSupport()">检测 PWA 支持</button>
-            <button onclick="registerServiceWorker()">注册 Service Worker</button>
-            <button onclick="clearCache()">清除缓存</button>
-        </div>
-    </div>
-    
-    <script>
-        // 检测 PWA 支持
-        function checkPwaSupport() {
-            const statusElement = document.getElementById('pwa-status');
-            const support = {
-                serviceWorker: 'serviceWorker' in navigator,
-                manifest: 'manifest' in document,
-                addToHomeScreen: 'BeforeInstallPromptEvent' in window
-            };
-            
-            statusElement.innerHTML = `
-                <p>Service Worker 支持: ${support.serviceWorker ? '✅' : '❌'}</p>
-                <p>Web App Manifest 支持: ${support.manifest ? '✅' : '❌'}</p>
-                <p>添加到主屏幕支持: ${support.addToHomeScreen ? '✅' : '❌'}</p>
-            `;
-        }
-        
-        // 注册 Service Worker
-        function registerServiceWorker() {
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/service-worker.js')
-                        .then((registration) => {
-                            console.log('Service Worker 注册成功:', registration.scope);
-                            alert('Service Worker 注册成功！');
-                        })
-                        .catch((error) => {
-                            console.log('Service Worker 注册失败:', error);
-                            alert('Service Worker 注册失败: ' + error.message);
-                        });
-                });
-            } else {
-                alert('您的浏览器不支持 Service Worker');
-            }
-        }
-        
-        // 清除缓存
-        function clearCache() {
-            if ('caches' in window) {
-                caches.keys().then((cacheNames) => {
-                    cacheNames.forEach((cacheName) => {
-                        caches.delete(cacheName);
-                    });
-                    alert('缓存已清除！');
-                });
-            } else {
-                alert('您的浏览器不支持缓存 API');
-            }
-        }
-        
-        // 检测安装事件
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            console.log('可以添加到主屏幕');
-        });
-        
-        // 初始化
-        window.addEventListener('load', () => {
-            checkPwaSupport();
-            // 自动注册 Service Worker
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then((registration) => {
-                        console.log('Service Worker 注册成功:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('Service Worker 注册失败:', error);
-                    });
-            }
-        });
-    </script>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
 </body>
 </html>
