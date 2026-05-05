@@ -20,6 +20,12 @@ const routes = [
     meta: { title: '生成卡片', tab: 'card' }
   },
   {
+    path: '/square',
+    name: 'square',
+    component: () => import('@/views/SquareView.vue'),
+    meta: { title: '广场', tab: 'square' }
+  },
+  {
     path: '/echo',
     name: 'echo',
     component: () => import('@/views/EchoView.vue'),

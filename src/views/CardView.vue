@@ -70,6 +70,9 @@
 
       <div class="card-actions">
         <button class="action-btn share" @click="showShare = true">分享卡片</button>
+        <button class="action-btn square" @click="publishToSquare" :disabled="published">
+          {{ published ? '已发布 ✓' : '发布到广场 🌌' }}
+        </button>
         <button class="action-btn new" @click="resetCard">再来一张</button>
       </div>
 
@@ -87,6 +90,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useEmotionStore } from '@/stores/emotion'
 import { useCardStore } from '@/stores/card'
+import { useIdentityStore } from '@/stores/identity'
 import CardPreview from '@/components/CardPreview.vue'
 import ShareDialog from '@/components/ShareDialog.vue'
 
@@ -94,9 +98,11 @@ const route = useRoute()
 const router = useRouter()
 const emotionStore = useEmotionStore()
 const cardStore = useCardStore()
+const identityStore = useIdentityStore()
 
 const selectedSticker = ref('comfort')
 const showShare = ref(false)
+const published = ref(false)
 
 const moodIcons = { 0: '🌧️', 1: '🌤️', 2: '☀️' }
 const stickerLabels = { comfort: '安慰', gossip: '吃瓜', roast: '损友' }
@@ -124,10 +130,38 @@ async function generateCard() {
 function resetCard() {
   cardStore.reset()
   selectedSticker.value = 'comfort'
+  published.value = false
 }
 
 function goTreeHole() {
   router.push('/tree-hole')
+}
+
+async function publishToSquare() {
+  if (published.value || !post.value) return
+
+  if (!identityStore.currentIdentity) {
+    identityStore.autoLoadIdentity()
+  }
+
+  try {
+    const res = await fetch('/api/share/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content_text: post.value.content_text,
+        mood_band: cardStore.aiResult?.mood_band ?? post.value.mood_band_final ?? 1,
+        nickname: identityStore.currentIdentity?.nickname || '匿名',
+        emoji: identityStore.currentIdentity?.emoji || '🌙',
+      }),
+    })
+
+    if (res.ok) {
+      published.value = true
+    }
+  } catch (err) {
+    console.error('发布到广场失败:', err)
+  }
 }
 
 onMounted(() => {
@@ -343,6 +377,16 @@ watch(() => route.params.postId, () => {
 .action-btn.share {
   background: linear-gradient(135deg, var(--accent-warm), #e8a060);
   color: var(--bg-primary);
+}
+
+.action-btn.square {
+  background: linear-gradient(135deg, var(--accent-lavender), #9b8ab8);
+  color: var(--bg-primary);
+}
+
+.action-btn.square:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .action-btn.new {

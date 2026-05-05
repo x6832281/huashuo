@@ -31,7 +31,7 @@ export const useHugStore = defineStore('hug', {
 
     async fetchHugUpdates() {
       try {
-        const result = await hugFeedbackModule.fetchHugUpdates()
+        const result = await hugFeedbackModule.fetchAndUpdateHugCounts()
         if (result.newHugs && result.newHugs.length > 0) {
           this.newHugs = result.newHugs
           this.notificationData = result.newHugs[0]

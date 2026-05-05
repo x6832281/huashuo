@@ -58,7 +58,7 @@ class CardGenerationModule {
     
     // 分享链接的基础URL
     // 完整的分享链接会是：https://huashuo.app/share?id=share_id
-    this.baseUrl = 'https://huashuo.app/share';
+    this.baseUrl = 'https://huashuo.app/s';
   }
 
   /**
@@ -232,40 +232,24 @@ class CardGenerationModule {
    * @returns {HTMLCanvasElement} 返回渲染完成的Canvas对象
    * @throws {Error} 如果渲染失败，抛出错误
    */
-  generateCard(cardData) {
+  async generateCard(cardData) {
     try {
-      // 创建Canvas元素
-      // Canvas是HTML5提供的绘图API，支持2D和3D渲染
       const canvas = document.createElement('canvas');
-      canvas.width = this.cardWidth;    // 设置宽度为600px
-      canvas.height = this.cardHeight;  // 设置高度为800px
-      
-      // 获取2D渲染上下文
-      // ctx对象提供了所有绘图方法
+      canvas.width = this.cardWidth;
+      canvas.height = this.cardHeight;
       const ctx = canvas.getContext('2d');
 
-      // 绘制背景（渐变灰色 + 边框装饰）
       this.drawBackground(ctx);
-      
-      // 绘制诗句（居中显示，支持自动换行）
       this.drawPoem(ctx, cardData.ai_poem);
-      
-      // 绘制表情包（白色圆角气泡样式）
       this.drawSticker(ctx, cardData);
-      
-      // 如果有分享ID，生成并绘制二维码
+
       if (cardData.share_id) {
-        // 生成二维码的Data URL
-        const qrCodeDataUrl = this.generateQRCode(cardData.share_id);
-        // 绘制二维码到Canvas
+        const qrCodeDataUrl = await this.generateQRCode(cardData.share_id);
         this.drawQRCode(ctx, qrCodeDataUrl);
       }
 
-      // 返回渲染完成的Canvas对象
-      // 调用者可以使用toDataURL()或toBlob()导出为图片
       return canvas;
     } catch (error) {
-      // 记录错误日志并重新抛出异常
       console.error('卡片生成失败:', error);
       throw new Error('卡片生成失败');
     }
@@ -459,7 +443,7 @@ class CardGenerationModule {
    * @returns {string} 返回二维码的Data URL（base64编码的PNG图片）
    */
   async generateQRCode(shareId) {
-    const url = `${this.baseUrl}?id=${shareId}`;
+    const url = `${this.baseUrl}/${shareId}`;
     try {
       const QRCode = (await import('qrcode')).default;
       const dataUrl = await QRCode.toDataURL(url, {
@@ -588,7 +572,7 @@ class CardGenerationModule {
    */
   generateShareLink(shareId) {
     // 拼接基础URL和分享ID
-    return `${this.baseUrl}?id=${shareId}`;
+    return `${this.baseUrl}/${shareId}`;
   }
 
   /**

@@ -30,6 +30,7 @@
     "vite": "^5.0.0"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.3",
     "@vitejs/plugin-vue": "^6.0.6",
     "pinia": "^2.0.0",
     "qrcode": "^1.5.4",

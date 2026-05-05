@@ -47,6 +47,7 @@ const tabs = [
   { name: 'home', to: '/', icon: '🌙', label: '心事' },
   { name: 'treeHole', to: '/tree-hole', icon: '🌳', label: '树洞' },
   { name: 'card', to: '/card', icon: '🎴', label: '卡片' },
+  { name: 'square', to: '/square', icon: '🌌', label: '广场' },
   { name: 'echo', to: '/echo', icon: '💫', label: '回声' },
   { name: 'settings', to: '/settings', icon: '⚙️', label: '设置' }
 ]
@@ -143,7 +144,8 @@ onMounted(async () => {
   justify-content: center;
   gap: 2px;
   padding: 6px 0;
-  min-width: 56px;
+  flex: 1;
+  min-width: 0;
   text-decoration: none;
   color: var(--text-muted);
   transition: var(--transition-gentle);

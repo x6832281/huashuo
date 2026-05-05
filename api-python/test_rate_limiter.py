@@ -1,10 +1,11 @@
 import time
 import asyncio
+import pytest
 from app.utils.rate_limiter import RateLimiter
 from app.utils.middleware import PATH_LIMITS
 
+@pytest.mark.asyncio
 async def test_ip_rate_limit():
-    print("Testing IP rate limiting...")
     rate_limiter = RateLimiter()
     ip = "192.168.1.1"
     
@@ -12,29 +13,26 @@ async def test_ip_rate_limit():
         assert rate_limiter.is_ip_allowed(ip, limit=3), f"Request {i+1} should be allowed"
     
     assert not rate_limiter.is_ip_allowed(ip, limit=3), "Request exceeding limit should be rejected"
-    print("PASS: IP rate limiting test passed")
 
+@pytest.mark.asyncio
 async def test_device_rate_limit():
-    print("Testing device rate limiting...")
     rate_limiter = RateLimiter()
     device_id = "test-device-123"
     
     assert rate_limiter.is_device_allowed(device_id), "First request should be allowed"
     assert not rate_limiter.is_device_allowed(device_id), "Second request should be rejected"
-    print("PASS: Device rate limiting test passed")
 
+@pytest.mark.asyncio
 async def test_hug_anti_brush():
-    print("Testing hug anti-brush...")
     rate_limiter = RateLimiter()
     device_id = "test-device-123"
     share_id = "test-share-123"
     
     assert rate_limiter.is_device_allowed(device_id, share_id), "First hug should be allowed"
     assert not rate_limiter.is_device_allowed(device_id, share_id), "Second hug should be rejected"
-    print("PASS: Hug anti-brush test passed")
 
+@pytest.mark.asyncio
 async def test_path_rate_limit():
-    print("Testing path rate limiting...")
     rate_limiter = RateLimiter()
     ip = "192.168.1.1"
     path = "/api/ai/translate"
@@ -44,10 +42,9 @@ async def test_path_rate_limit():
         assert rate_limiter.is_path_allowed(ip, path, PATH_LIMITS), f"Request {i+1} should be allowed"
     
     assert not rate_limiter.is_path_allowed(ip, path, PATH_LIMITS), "Request exceeding limit should be rejected"
-    print("PASS: Path rate limiting test passed")
 
+@pytest.mark.asyncio
 async def test_clear_expired():
-    print("Testing clear expired data...")
     rate_limiter = RateLimiter()
     ip = "192.168.1.1"
     
@@ -56,10 +53,9 @@ async def test_clear_expired():
     
     rate_limiter.clear_expired()
     assert len(rate_limiter.ip_requests) > 0, "Should still have IP request records after clear (not expired yet)"
-    print("PASS: Clear expired data test passed")
 
+@pytest.mark.asyncio
 async def test_get_stats():
-    print("Testing get stats...")
     rate_limiter = RateLimiter()
     ip = "192.168.1.1"
     device_id = "test-device-123"
@@ -76,16 +72,14 @@ async def test_get_stats():
     assert stats["device_requests_count"] > 0, "Should have device request stats"
     assert stats["hug_requests_count"] > 0, "Should have hug request stats"
     assert stats["path_requests_count"] > 0, "Should have path request stats"
-    print("PASS: Get stats test passed")
 
+@pytest.mark.asyncio
 async def test_edge_cases():
-    print("Testing edge cases...")
     rate_limiter = RateLimiter()
     
     assert rate_limiter.is_ip_allowed(""), "Empty IP should be allowed"
     assert rate_limiter.is_device_allowed(""), "Empty device ID should be allowed"
     assert rate_limiter.is_path_allowed("192.168.1.1", "", PATH_LIMITS), "Empty path should be allowed"
-    print("PASS: Edge cases test passed")
 
 async def run_tests():
     print("\nStarting rate limiter module tests...\n")
