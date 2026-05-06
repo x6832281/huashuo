@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS shared_cards (
   share_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ai_poem TEXT NOT NULL,
   mood_band SMALLINT NOT NULL CHECK (mood_band IN (0, 1, 2)),
-  hugs_count INTEGER NOT NULL DEFAULT 0,
+  hugs_count INTEGER NOT NULL DEFAULT 0 CHECK (hugs_count >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_hug_at TIMESTAMPTZ

@@ -137,7 +137,14 @@ function parseAIResponse(content) {
   }
 }
 
-async function callOpenRouter(text) {
+async function callOpenRouter(text, style) {
+  const styleHints = {
+    heal_poem: '治愈现代诗风格，温暖、轻柔、有力量',
+    gossip: '网络热梗、吃瓜吐槽风格，幽默、接地气',
+    roast: '损友式吐槽打气风格，夸张吐槽但站你这边',
+  };
+  const styleHint = styleHints[style] || styleHints.heal_poem;
+
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -149,11 +156,11 @@ async function callOpenRouter(text) {
       messages: [
         {
           role: 'system',
-          content: '你是一个情绪分析和文案生成助手。你能将用户的情绪文本转化为以下任意一种风格的文案：\n- 网络热梗（如：今天也是元气满满的一天）\n- 名人名言（如：生活不止眼前的苟且，还有诗和远方）\n- 书摘文案（如：愿你出走半生，归来仍是少年）\n- 小说经典语句（如：春风十里，不如你）\n- 古诗词（如：云卷云舒任自然）\n\n情绪类型分为0（悲伤）、1（中性）、2（开心）。请根据用户文本的情绪，随机选择一种风格生成文案。\n\n同时生成三个不同风格的贴纸文案：安慰、吃瓜、损友式调侃。\n\n请严格按照以下格式回复：\n情绪频段: 数字\n文案: 内容\n安慰: 内容\n吃瓜: 内容\n损友: 内容',
+          content: `你是一个情绪分析和文案生成助手。你能将用户的情绪文本转化为文案，风格偏好为：${styleHint}。\n\n可选风格包括：网络热梗、名人名言、书摘文案、小说经典语句、古诗词等。请根据用户文本的情绪和指定风格偏好，生成最合适的文案。\n\n情绪类型分为0（悲伤）、1（中性）、2（开心）。\n\n同时生成三个不同风格的贴纸文案：安慰、吃瓜、损友式调侃（吐槽式打气，不攻击人格）。\n\n请严格按照以下格式回复：\n情绪频段: 数字\n文案: 内容\n安慰: 内容\n吃瓜: 内容\n损友: 内容`,
         },
         {
           role: 'user',
-          content: `请分析以下文本的情绪类型（0-2），并生成一段对应风格的文案（可以是网络热梗、名人名言、书摘文案、小说经典语句等任意风格），以及三个不同风格的贴纸文案：\n${text}`,
+          content: `请分析以下文本的情绪类型（0-2），并生成一段对应风格的文案（偏好：${styleHint}），以及三个不同风格的贴纸文案：\n${text}`,
         },
       ],
       temperature: 0.9,
@@ -201,18 +208,18 @@ export default async function handler(req) {
     }
 
     if (!OPENROUTER_API_KEY) {
-      return json(getLocalTemplate(text));
+      return json({ error: 'AI服务未配置' }, 502);
     }
 
     try {
-      const result = await callOpenRouter(text);
+      const result = await callOpenRouter(text, style);
       return json(result);
     } catch (err) {
-      console.warn('AI API failed, using local template:', err.message);
-      return json(getLocalTemplate(text));
+      console.warn('AI API failed:', err.message);
+      return json({ error: 'AI翻译服务暂时不可用，请稍后重试' }, 502);
     }
   } catch (err) {
     console.error('Translate error:', err);
-    return json({ error: '请求处理失败' }, 500);
+    return json({ error: '请求处理失败' }, 502);
   }
 }

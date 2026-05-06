@@ -494,17 +494,21 @@ class CardGenerationModule {
    */
   exportCard(canvas) {
     try {
-      let quality = 0.92;
-      let dataUrl = canvas.toDataURL('image/jpeg', quality);
       const maxBytes = 300 * 1024;
+      let dataUrl = canvas.toDataURL('image/png');
 
+      if (this._estimateDataUrlSize(dataUrl) <= maxBytes) {
+        return this.dataURLToBlob(dataUrl);
+      }
+
+      let quality = 0.92;
+      dataUrl = canvas.toDataURL('image/jpeg', quality);
       while (this._estimateDataUrlSize(dataUrl) > maxBytes && quality > 0.5) {
         quality -= 0.1;
         dataUrl = canvas.toDataURL('image/jpeg', quality);
       }
 
-      const blob = this.dataURLToBlob(dataUrl);
-      return blob;
+      return this.dataURLToBlob(dataUrl);
     } catch (error) {
       console.error('卡片导出失败:', error);
       throw new Error('卡片导出失败');

@@ -41,10 +41,12 @@ function isAllowed(key, limit, window) {
   return true;
 }
 
-export function checkRateLimit(req, path) {
+export function checkRateLimit(req, path, keySuffix) {
   const ip = getClientIp(req);
   const globalKey = `global:${ip}`;
-  const pathKey = `path:${ip}:${path}`;
+  const pathKey = keySuffix
+    ? `path:${ip}:${path}:${keySuffix}`
+    : `path:${ip}:${path}`;
 
   if (!isAllowed(globalKey, GLOBAL_LIMIT.limit, GLOBAL_LIMIT.window)) {
     return { allowed: false, message: '请求过于频繁，请稍后再试' };

@@ -33,19 +33,22 @@ export default async function handler(req) {
     const shareId = generateShareId();
     const supabase = getSupabase();
 
-    if (supabase) {
-      const { error } = await supabase
-        .from('shared_cards')
-        .insert({
-          share_id: shareId,
-          ai_poem,
-          mood_band,
-          hugs_count: 0,
-        });
+    if (!supabase) {
+      return json({ error: '数据库未配置' }, 502);
+    }
 
-      if (error) {
-        console.error('Supabase insert error:', error);
-      }
+    const { error } = await supabase
+      .from('shared_cards')
+      .insert({
+        share_id: shareId,
+        ai_poem,
+        mood_band,
+        hugs_count: 0,
+      });
+
+    if (error) {
+      console.error('Supabase insert error:', error);
+      return json({ error: '写入失败，请稍后重试' }, 502);
     }
 
     const origin = req.headers['origin'] || process.env.APP_BASE_URL || 'https://huashuo.app';
@@ -56,6 +59,6 @@ export default async function handler(req) {
     });
   } catch (err) {
     console.error('Create share error:', err);
-    return json({ error: '创建分享失败' }, 500);
+    return json({ error: '创建分享失败' }, 502);
   }
 }

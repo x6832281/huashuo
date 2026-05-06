@@ -10,11 +10,6 @@ export default async function handler(req) {
     return json({ error: 'Method not allowed' }, 405);
   }
 
-  const rateCheck = checkRateLimit(req, '/api/share/hug');
-  if (!rateCheck.allowed) {
-    return json({ error: rateCheck.message }, 429);
-  }
-
   try {
     const body = await req.json();
     const { share_id, device_id } = body;
@@ -24,6 +19,11 @@ export default async function handler(req) {
     }
     if (!device_id) {
       return json({ error: '设备ID不能为空' }, 400);
+    }
+
+    const rateCheck = checkRateLimit(req, '/api/share/hug', share_id);
+    if (!rateCheck.allowed) {
+      return json({ error: rateCheck.message }, 429);
     }
 
     const supabase = getSupabase();
@@ -47,10 +47,7 @@ export default async function handler(req) {
         .maybeSingle();
 
       if (existingHug) {
-        return json({
-          hugs_count: card.hugs_count,
-          message: '今日已拥抱',
-        });
+        return json({ error: '今日已拥抱' }, 429);
       }
 
       const { error: rpcError } = await supabase.rpc('increment_hug', {
@@ -68,7 +65,7 @@ export default async function handler(req) {
 
         if (updateError) {
           console.error('Update hugs_count error:', updateError);
-          return json({ error: '拥抱失败' }, 500);
+          return json({ error: '拥抱失败' }, 502);
         }
       }
 
@@ -91,6 +88,6 @@ export default async function handler(req) {
     return json({ hugs_count: 1 });
   } catch (err) {
     console.error('Hug error:', err);
-    return json({ error: '拥抱失败' }, 500);
+    return json({ error: '拥抱失败' }, 502);
   }
 }

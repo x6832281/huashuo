@@ -1,5 +1,12 @@
 <template>
   <div class="echo-view">
+    <transition name="slide-down">
+      <div v-if="newHugNotification" class="hug-notification">
+        <span class="hug-notification-icon">🤗</span>
+        <span class="hug-notification-text">{{ newHugNotification }}</span>
+      </div>
+    </transition>
+
     <div class="echo-header">
       <p class="echo-subtitle">来自远方的温暖</p>
     </div>
@@ -36,12 +43,27 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useHugStore } from '@/stores/hug'
 
 const router = useRouter()
 const hugStore = useHugStore()
+const newHugNotification = ref('')
+let previousTotalHugs = 0
+let pollTimer = null
+
+function checkForNewHugs() {
+  const currentTotal = hugStore.totalHugs
+  if (previousTotalHugs > 0 && currentTotal > previousTotalHugs) {
+    const diff = currentTotal - previousTotalHugs
+    newHugNotification.value = `收到 ${diff} 个新拥抱`
+    setTimeout(() => {
+      newHugNotification.value = ''
+    }, 3000)
+  }
+  previousTotalHugs = currentTotal
+}
 
 function formatTime(ts) {
   if (!ts) return ''
@@ -58,8 +80,19 @@ function goCard() {
   router.push('/card')
 }
 
-onMounted(() => {
-  hugStore.loadEchoData()
+onMounted(async () => {
+  await hugStore.loadEchoData()
+  previousTotalHugs = hugStore.totalHugs
+  pollTimer = setInterval(async () => {
+    await hugStore.fetchHugUpdates()
+    checkForNewHugs()
+  }, 30000)
+})
+
+onUnmounted(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+  }
 })
 </script>
 
@@ -67,6 +100,36 @@ onMounted(() => {
 .echo-view {
   padding: 24px 20px;
   min-height: 100%;
+  position: relative;
+}
+
+.hug-notification {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--accent-warm), #e8a87c);
+  color: var(--bg-primary);
+  padding: 10px 20px;
+  border-radius: var(--radius-xl);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(240, 194, 127, 0.3);
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.4s ease;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
 }
 
 .echo-header {

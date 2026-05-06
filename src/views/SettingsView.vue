@@ -55,9 +55,42 @@
 
     <section class="settings-section">
       <h3 class="section-title">数据管理</h3>
+      <div class="setting-item" @click="exportData">
+        <span class="setting-label">导出我的数据</span>
+        <span class="setting-arrow">›</span>
+      </div>
       <div class="setting-item" @click="clearAllData">
         <span class="setting-label">清除所有数据</span>
         <span class="setting-arrow">›</span>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="section-title">隐私与安全</h3>
+      <div class="privacy-box">
+        <p>🔒 你的隐私是我们的底线</p>
+        <ul>
+          <li>所有心事内容<strong>仅存储在你的设备本地</strong>，不会上传到服务器</li>
+          <li>AI加密翻译后的卡片内容<strong>不包含任何原文信息</strong></li>
+          <li>身份信息<strong>匿名化处理</strong>，无法关联到真实身份</li>
+          <li>网页端送拥抱功能<strong>无需登录</strong>，通过设备指纹去重</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="section-title">反馈与建议</h3>
+      <div class="feedback-box">
+        <textarea
+          v-model="feedbackText"
+          class="feedback-input"
+          placeholder="有任何建议或问题，欢迎告诉我们..."
+          maxlength="500"
+        ></textarea>
+        <div class="feedback-footer">
+          <span class="feedback-count">{{ feedbackText.length }}/500</span>
+          <button class="confirm-btn" @click="submitFeedback" :disabled="!feedbackText.trim()">提交</button>
+        </div>
       </div>
     </section>
 
@@ -82,6 +115,7 @@ const identityStore = useIdentityStore()
 const showCreate = ref(false)
 const newNickname = ref('')
 const newEmoji = ref('😊')
+const feedbackText = ref('')
 
 const emojiOptions = ['😊', '🌙', '🌸', '🍀', '🎵', '🦋', '🐱', '☕']
 
@@ -115,6 +149,43 @@ async function createIdentity() {
   if (!canCreate.value) return
   await identityStore.createIdentity(newNickname.value, newEmoji.value)
   cancelCreate()
+}
+
+async function exportData() {
+  try {
+    const identities = await localStorageModule.getAllData('identities')
+    const posts = await localStorageModule.getAllData('posts')
+    const cards = await localStorageModule.getAllData('cards')
+    const exportObj = {
+      version: '1.0.0',
+      exported_at: new Date().toISOString(),
+      identities,
+      posts,
+      cards,
+    }
+    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `huashuo_backup_${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('导出数据失败:', error)
+    alert('导出失败，请重试')
+  }
+}
+
+function submitFeedback() {
+  if (!feedbackText.value.trim()) return
+  const feedbacks = JSON.parse(localStorage.getItem('huashuo_feedbacks') || '[]')
+  feedbacks.push({
+    text: feedbackText.value.trim(),
+    created_at: new Date().toISOString(),
+  })
+  localStorage.setItem('huashuo_feedbacks', JSON.stringify(feedbacks))
+  feedbackText.value = ''
+  alert('感谢你的反馈！')
 }
 
 async function clearAllData() {
@@ -341,5 +412,71 @@ async function clearAllData() {
   font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.6;
+}
+
+.privacy-box {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  padding: 16px;
+}
+
+.privacy-box p {
+  font-size: 14px;
+  color: var(--accent-warm);
+  margin-bottom: 10px;
+}
+
+.privacy-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.privacy-box li {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  padding-left: 16px;
+  position: relative;
+}
+
+.privacy-box li::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+  color: var(--accent-warm);
+}
+
+.feedback-box {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  padding: 16px;
+}
+
+.feedback-input {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  resize: vertical;
+  font-family: inherit;
+}
+
+.feedback-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.feedback-count {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 </style>

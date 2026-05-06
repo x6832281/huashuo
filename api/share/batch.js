@@ -31,7 +31,7 @@ export default async function handler(req) {
     if (supabase) {
       const { data, error } = await supabase
         .from('shared_cards')
-        .select('share_id, hugs_count, ai_poem, mood_band')
+        .select('share_id, hugs_count')
         .in('share_id', share_ids);
 
       if (error) {
@@ -49,8 +49,6 @@ export default async function handler(req) {
         return {
           share_id: sid,
           hugs_count: found?.hugs_count ?? 0,
-          ai_poem: found?.ai_poem ?? null,
-          mood_band: found?.mood_band ?? null,
         };
       });
 
@@ -65,6 +63,6 @@ export default async function handler(req) {
     });
   } catch (err) {
     console.error('Batch hug error:', err);
-    return json({ error: '批量查询失败' }, 500);
+    return json({ error: '批量查询失败' }, 502);
   }
 }
