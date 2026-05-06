@@ -55,7 +55,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'https://huashuo.app',
+        target: process.env.VITE_API_PROXY || 'https://huashuo.app',
         changeOrigin: true,
         secure: false,
       }

@@ -37,6 +37,15 @@ self.addEventListener('activate', (event) => {
 
 // fetch事件
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {

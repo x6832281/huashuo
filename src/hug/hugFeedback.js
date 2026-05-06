@@ -115,9 +115,10 @@ class HugFeedbackModule {
     } catch (error) {
       // API请求失败
       console.error('拉取拥抱计数错误:', error);
-      // 使用模拟数据（开发阶段）
-      // 注意：生产环境中应该移除模拟数据
-      return this.getMockHugCounts(shareIds);
+      return shareIds.map(shareId => ({
+        share_id: shareId,
+        hugs_count: 0
+      }));
     }
   }
 

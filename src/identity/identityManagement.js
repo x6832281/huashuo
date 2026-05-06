@@ -103,7 +103,7 @@ class IdentityManagementModule {
    * @returns {string} 返回生成的唯一ID字符串
    */
   generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
   }
 
   /**

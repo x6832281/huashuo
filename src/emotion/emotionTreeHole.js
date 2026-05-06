@@ -94,7 +94,7 @@ class EmotionTreeHoleModule {
    * @returns {string} 返回生成的唯一ID字符串
    */
   generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
   }
 
   /**
@@ -179,7 +179,7 @@ class EmotionTreeHoleModule {
       idCard: /[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]/g,
       
       // 常见地址关键词：市县区镇村街道路巷号栋单元层室
-      address: /[市县区镇村街道路巷号栋单元层室]/g
+      address: /(?:[省市县区镇村街道巷路号楼栋单元层室]\S{0,6}){2,}/g
     };
 
     // 存储检测到的敏感信息

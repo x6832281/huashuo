@@ -45,9 +45,14 @@ class ShareFunctionalityModule {
    * 构造函数：初始化分享链接基础URL
    */
   constructor() {
-    // 分享链接的基础URL
-    // 完整的分享链接格式：https://huashuo.app/s/share_id
-    this.baseUrl = 'https://huashuo.app/s';
+    this.baseUrl = this._resolveBaseUrl();
+  }
+
+  _resolveBaseUrl() {
+    if (typeof window !== 'undefined' && window.location) {
+      return `${window.location.origin}/s`;
+    }
+    return 'https://huashuo.app/s';
   }
 
   /**
@@ -442,7 +447,7 @@ class ShareFunctionalityModule {
   }
 
   generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
   }
 
   async shareCard(cardData, imageBlob) {

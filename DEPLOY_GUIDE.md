@@ -497,14 +497,17 @@ npm run dev
 ```javascript
 proxy: {
   '/api': {
-    target: 'https://huashuo.app',  // 替换为你的域名
+    target: process.env.VITE_API_PROXY || 'https://huashuo.app',
     changeOrigin: true,
     secure: false,
   }
 }
 ```
 
-> 💡 如果你还没有部署到 Vercel，可以将 `target` 改为你的 Vercel 预览域名（如 `https://huashuo-xxxxx.vercel.app`）。
+> 💡 可通过环境变量 `VITE_API_PROXY` 自定义代理目标，无需修改代码：
+> ```powershell
+> $env:VITE_API_PROXY="https://huashuo-xxxxx.vercel.app"; npm run dev
+> ```
 
 ### 9.5 构建生产版本
 

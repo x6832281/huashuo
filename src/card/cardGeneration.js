@@ -56,9 +56,14 @@ class CardGenerationModule {
     // 800px提供了足够的空间显示所有元素
     this.cardHeight = 800;
     
-    // 分享链接的基础URL
-    // 完整的分享链接会是：https://huashuo.app/share?id=share_id
-    this.baseUrl = 'https://huashuo.app/s';
+    this.baseUrl = this._resolveBaseUrl();
+  }
+
+  _resolveBaseUrl() {
+    if (typeof window !== 'undefined' && window.location) {
+      return `${window.location.origin}/s`;
+    }
+    return 'https://huashuo.app/s';
   }
 
   /**
@@ -73,7 +78,7 @@ class CardGenerationModule {
    * @returns {string} 返回生成的唯一ID字符串
    */
   generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
   }
 
   /**
@@ -489,28 +494,26 @@ class CardGenerationModule {
    */
   exportCard(canvas) {
     try {
-      // 初始图片质量（90%）
-      let quality = 0.9;
-      // 将Canvas转换为PNG格式的Data URL
-      let dataUrl = canvas.toDataURL('image/png', quality);
+      let quality = 0.92;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      const maxBytes = 300 * 1024;
 
-      // 压缩循环：如果图片大小超过300KB，逐步降低质量
-      // 300KB = 300 * 1024 = 307200字节
-      while (dataUrl.length > 300 * 1024 && quality > 0.5) {
-        quality -= 0.1;  // 每次降低0.1的质量
-        dataUrl = canvas.toDataURL('image/png', quality);
+      while (this._estimateDataUrlSize(dataUrl) > maxBytes && quality > 0.5) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
       }
 
-      // 将Data URL转换为Blob对象
       const blob = this.dataURLToBlob(dataUrl);
-      
-      // 返回图片Blob对象
       return blob;
     } catch (error) {
-      // 记录错误日志并重新抛出异常
       console.error('卡片导出失败:', error);
       throw new Error('卡片导出失败');
     }
+  }
+
+  _estimateDataUrlSize(dataUrl) {
+    const base64 = dataUrl.split(',')[1] || '';
+    return Math.floor(base64.length * 3 / 4);
   }
 
   /**
@@ -594,32 +597,27 @@ class CardGenerationModule {
    * @returns {Array<string>} 返回拆分后的文字行数组
    */
   wrapText(text, ctx, maxWidth) {
-    // 按空格拆分文本为单词数组
-    const words = text.split(' ');
-    const lines = [];  // 存储拆分后的文字行
-    let currentLine = words[0];  // 当前行从第一个单词开始
+    const lines = [];
+    let currentLine = '';
 
-    // 从第二个单词开始逐个处理
-    for (let i = 1; i < words.length; i++) {
-      // 尝试将当前单词添加到当前行
-      const testLine = currentLine + ' ' + words[i];
-      // 测量添加后的文字宽度
-      const metrics = ctx.measureText(testLine);
-      
-      // 如果宽度不超过最大宽度，继续添加到当前行
-      if (metrics.width < maxWidth) {
-        currentLine = testLine;
-      } else {
-        // 如果超过最大宽度，将当前行保存为新行
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '\n') {
         lines.push(currentLine);
-        // 当前单词作为下一行的开始
-        currentLine = words[i];
+        currentLine = '';
+        continue;
+      }
+      const testLine = currentLine + ch;
+      if (ctx.measureText(testLine).width > maxWidth && currentLine.length > 0) {
+        lines.push(currentLine);
+        currentLine = ch;
+      } else {
+        currentLine = testLine;
       }
     }
-    // 添加最后一行
-    lines.push(currentLine);
-    
-    // 返回拆分后的文字行数组
+    if (currentLine) {
+      lines.push(currentLine);
+    }
     return lines;
   }
 

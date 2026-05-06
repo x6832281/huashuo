@@ -4,8 +4,8 @@
   "description": "社恐/高敏感人群专属·零压力匿名情绪记录与加密分享工具",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4a90e2",
+  "background_color": "#0f0f1a",
+  "theme_color": "#1a1a2e",
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

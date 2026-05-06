@@ -187,62 +187,6 @@ class AITranslationModule {
    * @param {string} content - AI的文本回复内容
    * @returns {Object} 返回解析后的结构化对象
    */
-  parseAPIResponse(content) {
-    try {
-      // 按行分割回复内容
-      const lines = content.split('\n');
-      
-      // 初始化变量，设置默认值
-      let moodBand = 1;      // 默认情绪频段为1（平静）
-      let aiPoem = '';       // AI生成的诗句
-      let comfort = '';      // 安慰类表情包文案
-      let gossip = '';       // 吃瓜类表情包文案
-      let roast = '';        // 损友类表情包文案
-
-      // 逐行解析
-      for (const line of lines) {
-        // 解析情绪频段
-        if (line.includes('情绪频段:')) {
-          // 提取冒号后的数字，转换为整数
-          moodBand = parseInt(line.split(':')[1].trim());
-        } 
-        // 解析诗句
-        else if (line.includes('诗句:')) {
-          aiPoem = line.split(':')[1].trim();
-        } 
-        // 解析安慰类文案
-        else if (line.includes('安慰:')) {
-          comfort = line.split(':')[1].trim();
-        } 
-        // 解析吃瓜类文案
-        else if (line.includes('吃瓜:')) {
-          gossip = line.split(':')[1].trim();
-        } 
-        // 解析损友类文案
-        else if (line.includes('损友:')) {
-          roast = line.split(':')[1].trim();
-        }
-      }
-
-      // 返回结构化的结果对象
-      return {
-        mood_band: moodBand,    // 情绪频段
-        // AI诗句，如果为空则从本地模板随机获取
-        ai_poem: aiPoem || this.getRandomPoem(moodBand),
-        stickers: {
-          // 三类型表情包文案，如果为空则使用本地模板
-          comfort: comfort || this.localTemplates[moodBand].stickers.comfort,
-          gossip: gossip || this.localTemplates[moodBand].stickers.gossip,
-          roast: roast || this.localTemplates[moodBand].stickers.roast
-        }
-      };
-    } catch (error) {
-      // 解析失败，降级到本地模板
-      console.warn('Failed to parse API response, using local template:', error);
-      return this.getLocalTemplate('');
-    }
-  }
-
   /**
    * 分析文本情绪（本地方法）
    * 使用关键词匹配进行情绪分析，与emotionTreeHoleModule中的算法相同
@@ -264,10 +208,6 @@ class AITranslationModule {
    */
   analyzeMood(text) {
     try {
-      // 将文本转换为小写（虽然中文不需要，但为了统一处理）
-      const contentLower = text.toLowerCase();
-      
-      // 定义负面情绪词列表
       const negativeKeywords = ['难过', '伤心', '悲伤', '痛苦', '焦虑', '抑郁', '疲惫', '压力', '失望', '绝望', '愤怒', '害怕', '担心', '烦恼', '委屈'];
       
       // 定义正面情绪词列表
@@ -394,7 +334,7 @@ class AITranslationModule {
     }
     
     // 检查诗句：必须存在且长度不超过15字
-    if (!response.ai_poem || response.ai_poem.length > 15) {
+    if (!response.ai_poem || response.ai_poem.length > 100) {
       return false;
     }
     
